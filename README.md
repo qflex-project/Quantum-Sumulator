@@ -1,4 +1,4 @@
-# Quantum-Simulator
+# Quantum Simulator
 
 In this repository is avaluable the codes related to HybriD-GM model. This model was conceived as a computational methodology for quantum computing simulations and targeted to classical parallel hybrid architecture to assist the study of quantum algorithms better. 
 
