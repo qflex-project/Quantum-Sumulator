@@ -12,3 +12,9 @@ Below are materials published by the research group about Quantum Computing Simu
 Neurocomputing, Volume 393, 2020, Pages 223-233, ISSN 0925-2312, https://doi.org/10.1016/j.neucom.2019.01.118.](https://www.sciencedirect.com/science/article/abs/pii/S0925231219310690?via%3Dihub)
 
 * [A. Avila, R. H. S. Reiser, A. C. Yamin and M. L. Pilla, "Efficient In-Situ Quantum Computing Simulation of Shor's and Grover's Algorithms," 2017 International Symposium on Computer Architecture and High Performance Computing Workshops (SBAC-PADW), Campinas, Brazil, 2017, pp. 61-66, doi: 10.1109/SBAC-PADW.2017.19.](https://ieeexplore.ieee.org/document/8109007)
+
+* [A. Avila, R. H. S. Reiser, A. C. Yamin and M. L. Pilla, "Parallel simulation of Shor's and Grover's algorithms in the distributed geometric machine," 2017 13th International Conference on Natural Computation, Fuzzy Systems and Knowledge Discovery (ICNC-FSKD), Guilin, China, 2017, pp. 412-419, doi: 10.1109/FSKD.2017.8393304.](https://ieeexplore.ieee.org/document/8393304)
+
+* [de Avila, A. B., Reiser, R. H. S., Yamin, A. C., & Pilla, M. L. (2016, April). Scalable quantum simulation by reductions and decompositions through the Id-operator. In Proceedings of the 31st Annual ACM Symposium on Applied Computing (pp. 1255-1257)](https://dl.acm.org/doi/10.1145/2851613.2851936)
+
+* [Avila, A., Reiser, R. H., Pilla, M. L., & Yamin, A. C. (2016, July). Optimizing D-GM quantum computing by exploring parallel and distributed quantum simulations under GPUs arquitecture. In 2016 IEEE Congress on Evolutionary Computation (CEC) (pp. 5146-5153). IEEE.](https://ieeexplore.ieee.org/document/7748342)
