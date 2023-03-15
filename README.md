@@ -18,3 +18,5 @@ Neurocomputing, Volume 393, 2020, Pages 223-233, ISSN 0925-2312, https://doi.org
 * [de Avila, A. B., Reiser, R. H. S., Yamin, A. C., & Pilla, M. L. (2016, April). Scalable quantum simulation by reductions and decompositions through the Id-operator. In Proceedings of the 31st Annual ACM Symposium on Applied Computing (pp. 1255-1257)](https://dl.acm.org/doi/10.1145/2851613.2851936)
 
 * [Avila, A., Reiser, R. H., Pilla, M. L., & Yamin, A. C. (2016, July). Optimizing D-GM quantum computing by exploring parallel and distributed quantum simulations under GPUs arquitecture. In 2016 IEEE Congress on Evolutionary Computation (CEC) (pp. 5146-5153). IEEE.](https://ieeexplore.ieee.org/document/7748342)
+
+* [AVILA, A. B. ; MARON, Adriano K. ; REISER, Renata Hax Sander ; PILLA, Maurício L. ; YAMIN, Adenauer C. . GPU-Aware Distributed Quantum Simulation. In: Symposium On Applied Computing. In: Symposium On Applied Computing - ACM SAC 2014, 2014, Gyeongju Korea. Proceedings of 29th Annual SAC ACM 2014. New York: ACM Press, 2014. v. 1. p. 860-865.](https://dl.acm.org/doi/abs/10.1145/2554850.2554892)
