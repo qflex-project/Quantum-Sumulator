@@ -5,20 +5,15 @@
 #include <stdlib.h>
 #include <complex.h>
 #include <sys/time.h>
-//#include <stdbool.h>
 
+#define complex _Complex
+
+#define CHUNCK_SIZE 262144
 
 #define PT_TAM 1
 #define QB_LIMIT 30
 
-//#define TAM_BLOCK 128
 #define DIM_BLOCK 2048
-
-
-//#define COALESC 3
-//#define REPT 4
-//#define QBS_REGION 8
-//#define OPS_BLOCK 200
 
 #define TAM_ARG 5
 
@@ -27,7 +22,6 @@
 #define CTRL_VALUE 2
 #define CTRL_REG_MASK 3
 #define CTRL_REG_VALUE 4
-//Soemnte até aqui é necessário para a versão com memória compartilhada sem distribuição
 
 #define ACUMM 0
 #define SHIFT_READ 0
@@ -35,7 +29,6 @@
 #define MAT_START 0
 #define MAT_SIZE 0
 #define MAT_END 0
-
 
 enum {
 	DENSE,
@@ -50,16 +43,15 @@ struct PT{
 	int start, end;
 	bool affected;
 	
-	//variaveis para controladas
 	long ctrl_value, ctrl_mask;
 	long *ctrl_pos, ctrl_count;
 	long *ctrl_rest, ctrl_rest_count;
 
 	PT();
+
 	void destructor();
 	long ctrlAffect(long qubit);
 	long matrixType();
-	//void ctrlRest(long afect);
 	void setArgs(long *arg, long affect);
 	void setArgs_soft(long *arg, long affect);
 	void setArgsGPU(long *arg, int region_start, int region_size, int coalesc);

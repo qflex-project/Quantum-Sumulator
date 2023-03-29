@@ -1,34 +1,24 @@
 # Build tools
-NVCC = nvcc $(ARCH)
-CXX = g++-5
-GCC = gcc-5
+#NVCC = nvcc $(ARCH) -ccbin clang++
+#CXX = clang++
 ARCH = -arch=sm_52
+
+NVCC = nvcc $(ARCH)
+CXX = g++
+GCC = gcc
 
 #QBS_REGION = 4
 #D = -D QBS_REGION=$(QBS_REGION)
-OPS_BLOCK=200
+OPS_BLOCK=300
 
 # here are all the objects
 GPUOBJS = kernel.o
-OBJS = dgm.o common.o gates.o genMem.o
+OBJS = dgm.o common.o gates.o lib_general.o lib_shor.o lib_grover.o
+
 
 # make and compile
 
-#gpu: main.o $(OBJS) $(GPUOBJS)
-#	$(NVCC) -o gpu.out main.o $(OBJS) $(GPUOBJS) -Xcompiler "-fopenmp"
-
-gpu: main2.o final.o
-	$(NVCC) -o gpu.out main2.o final.o -Xcompiler "-fopenmp"
-
-cpu: main2.o $(OBJS)
-	$(CXX) -o cpu.out main2.o $(OBJS) -fopenmp
-
-cpu_qft: shor.o $(OBJS)
-	$(CXX) -o cpu_qft.out shor.o $(OBJS) -fopenmp
-
-
-final.o: $(OBJS) $(GPUOBJS)
-	ld -r $(OBJS) $(GPUOBJS) -o final.o
+# executables
 
 shor: shor.o $(OBJS) $(GPUOBJS)
 	$(NVCC) -o shor.out shor.o $(OBJS) $(GPUOBJS) -Xcompiler "-fopenmp"
@@ -36,38 +26,40 @@ shor: shor.o $(OBJS) $(GPUOBJS)
 grover: grover.o $(OBJS) $(GPUOBJS)
 	$(NVCC) -o grover.out grover.o $(OBJS) $(GPUOBJS) -Xcompiler "-fopenmp"
 
-fuzzy: fuzzy.o $(OBJS) $(GPUOBJS)
-	$(NVCC) -o fuzzy.out fuzzy.o $(OBJS) $(GPUOBJS) -Xcompiler "-fopenmp"
+general: general.o $(OBJS) $(GPUOBJS)
+	$(NVCC) -o general.out general.o $(OBJS) $(GPUOBJS) -Xcompiler "-fopenmp"
+ 
+# objects
 
-grover.o: grover.cpp
-	$(CXX) -c grover.cpp -fopenmp 
-
-shor.o: shor.cpp
-	$(CXX) -c shor.cpp -fopenmp 
-
-fuzzy.o: fuzzy.cpp
-	$(CXX) -c fuzzy.cpp -fopenmp 
+dgm.o: dgm.cu
+	$(NVCC) -c dgm.cu -Xcompiler "-fopenmp -O3 -fcx-limited-range"
 
 kernel.o: kernel.cu
 	$(NVCC) -c -D OPS_BLOCK=$(OPS_BLOCK) kernel.cu
-	
-main.o: main.cpp
-	$(CXX) -c main.cpp
-
-main2.o: main2.cpp
-	$(CXX) -c main2.cpp
-
-dgm.o: dgm.cpp
-	$(CXX) -c dgm.cpp -fopenmp -O3 -fcx-limited-range
 
 gates.o: gates.cpp
 	$(CXX) -c gates.cpp
 
-genMem.o: genMem.cpp
-	$(CXX) -c genMem.cpp
-	
-common.o: common.c
-	$(CXX) -c common.c 
-	
+common.o: common.cpp
+	$(CXX) -c common.cpp
+
+lib_general.o: lib_general.cpp
+	$(CXX) -c lib_general.cpp
+
+lib_shor.o: lib_shor.cpp
+	$(CXX) -c lib_shor.cpp
+
+lib_grover.o: lib_grover.cpp
+	$(CXX) -c lib_grover.cpp
+ 
+grover.o: grover.cpp
+	$(CXX) -c grover.cpp -fopenmp
+
+shor.o: shor.cpp
+	$(CXX) -c shor.cpp -fopenmp
+ 
+general.o: general.cpp
+	$(CXX) -c general.cpp -fopenmp 
+
 clean:
 	rm *.o *.out

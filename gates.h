@@ -8,6 +8,8 @@
 #include <complex.h>
 #include <math.h>
 
+#define complex _Complex
+
 using namespace std;
 
 string CNot(int qubits, int ctrl, int target, int cv = 1);
