@@ -1,4 +1,4 @@
-#include "lib_general.h"
+#include "lib_hadamard.h"
 #include "dgm.h"
 #include "common.h"
 #include "gates.h"

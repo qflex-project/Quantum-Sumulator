@@ -1,0 +1,6 @@
+*.err
+*.info
+bin/*
+data/*
+.vscode/*
+*.sh

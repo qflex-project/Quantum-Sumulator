@@ -837,40 +837,54 @@ void PCpuExecution1(float complex *state, PT **pts, int qubits, long n_threads, 
 
 		long ext_reg_id = 0;	//contador 'global' do número de regiões já computadas
 
-		#pragma omp parallel
+		long* reg_ids = (long*) malloc((reg_count-1)*sizeof(long));
+
+		for (size_t i = 0; i < reg_count-1; i++)	
 		{
-
-			long reg_id;		//indentificador local da região
-
-			//Define a primeira região (reg_id) da thread
-			#pragma omp critical (teste)
-			{
-				reg_id = ext_reg_id;
-				ext_reg_id = (ext_reg_id + reg_mask + 1) & ~reg_mask;
-				reg_count--;
-				if (reg_count <= 0)
-					reg_id = -1;
-			}
-
-			int print = (omp_get_thread_num()==0);
-			
-			
-			while (reg_id != -1){		
-				//Computa os operadores
-				PCpuExecution1_0(state, pts, qubits, start, end, pos_count, reg_id, reg_mask);
-		
-				//Define a próxima região (reg_id) da thread
-				#pragma omp critical (teste)
-				{
-					reg_id = ext_reg_id;
-					ext_reg_id = (ext_reg_id + reg_mask + 1) & ~reg_mask;
-					reg_count--;
-					if (reg_count <= 0)
-						reg_id = -1;
-				}
-			}
-
+			reg_ids[i] = ext_reg_id;
+			ext_reg_id = (ext_reg_id + reg_mask + 1) & ~reg_mask;
 		}
+
+		#pragma omp parallel for
+		for (size_t i = 0; i < reg_count-1; i++) {
+			PCpuExecution1_0(state, pts, qubits, start, end, pos_count, reg_ids[i], reg_mask);
+		}
+
+
+		// #pragma omp parallel
+		// {
+
+		// 	long reg_id;		//indentificador local da região
+
+		// 	//Define a primeira região (reg_id) da thread
+		// 	#pragma omp critical (teste)
+		// 	{
+		// 		reg_id = ext_reg_id;
+		// 		ext_reg_id = (ext_reg_id + reg_mask + 1) & ~reg_mask;
+		// 		reg_count--;
+		// 		if (reg_count <= 0)
+		// 			reg_id = -1;
+		// 	}
+
+		// 	int print = (omp_get_thread_num()==0);
+			
+			
+		// 	while (reg_id != -1){		
+		// 		//Computa os operadores
+		// 		PCpuExecution1_0(state, pts, qubits, start, end, pos_count, reg_id, reg_mask);
+		
+		// 		//Define a próxima região (reg_id) da thread
+		// 		#pragma omp critical (teste)
+		// 		{
+		// 			reg_id = ext_reg_id;
+		// 			ext_reg_id = (ext_reg_id + reg_mask + 1) & ~reg_mask;
+		// 			reg_count--;
+		// 			if (reg_count <= 0)
+		// 				reg_id = -1;
+		// 		}
+		// 	}
+
+		// }
 	}
 }
 
@@ -1007,7 +1021,7 @@ void DGM::HybridExecution(PT **pts){
 	long global_region = qubits_limit;
 	long global_start, global_end;
 
-	long global_count, global_reg_mask, global_reg_count, global_pos_count, ext_proj_id; 
+	long global_count, global_reg_mask, global_reg_count, ext_proj_id; //, global_pos_count; //atualmente não utilizada
 
 	omp_set_num_threads(n_threads);
 
@@ -1052,7 +1066,7 @@ void DGM::HybridExecution(PT **pts){
 			global_region = global_count;
 	
 		global_reg_count = (1 << (qubits - global_region)) + 1; 				//Número de regiões	- +1 para a condição de parada incluir todos
-		global_pos_count = 1 << (global_region - 1);
+		// global_pos_count = 1 << (global_region - 1); // Atualmente não utilizada
 
 		/////////////////////////////////////////////////////////////////////////////////////////////////////
 

@@ -52,24 +52,15 @@ float Grover(long qubits, long value, int type, int n_threads, int cpu_region, i
 
 	dgm.setFunction(H);
 	dgm.setFunction(grover_step, num_of_it, false);
-
-	
-	struct timeval timev, tvBegin, tvEnd;
-	gettimeofday(&tvBegin, NULL);
-	
 	dgm.execute(1);
 
 	for (int i = 1; i < qubits; i++) {
 		result = (result << 1) | dgm.measure(i);
 	}
 
-	gettimeofday(&tvEnd, NULL);
-	timeval_subtract(&timev, &tvEnd, &tvBegin);
-	float t = timev.tv_sec + (timev.tv_usec / 1000000.0);
-
 	dgm.freeMemory();
 
-	return t;
+	return result;
 }
 
 string Oracle1(long qubits, long int value){

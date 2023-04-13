@@ -176,7 +176,7 @@ void GpuExecution01(float* state, PT **pts, int qubits, int qbs_region, int mult
 		i = 0;
 
 		while (pts[i]!= NULL){
-			int region_start, is_peer, max_end, c = 0; //, qbs_block_id
+			int region_start, is_peer, c = 0; //, qbs_block_id, max_end // atualmente não utilizados
 			is_peer = 0;
 
 			while (pts[i+c] != NULL &&
@@ -186,7 +186,7 @@ void GpuExecution01(float* state, PT **pts, int qubits, int qbs_region, int mult
 				c++;
 			}
 
-			max_end = t_COALESC;
+			// max_end = t_COALESC; // atualmente não utilizada
 
 			int s_max, s_min = t_COALESC;
 

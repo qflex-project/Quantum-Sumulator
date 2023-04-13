@@ -7,59 +7,65 @@ NVCC = nvcc $(ARCH)
 CXX = g++
 GCC = gcc
 
+BIN=./bin
+SRC=./src
+INCLUDE=./include
+
 #QBS_REGION = 4
 #D = -D QBS_REGION=$(QBS_REGION)
 OPS_BLOCK=300
 
 # here are all the objects
-GPUOBJS = kernel.o
-OBJS = dgm.o common.o gates.o lib_general.o lib_shor.o lib_grover.o
+GPUOBJS = $(BIN)/kernel.o
+OBJS = $(BIN)/dgm.o $(BIN)/common.o $(BIN)/gates.o $(BIN)/lib_hadamard.o $(BIN)/lib_shor.o $(BIN)/lib_grover.o
 
 
 # make and compile
 
+all: shor grover hadamard
+
 # executables
 
-shor: shor.o $(OBJS) $(GPUOBJS)
-	$(NVCC) -o shor.out shor.o $(OBJS) $(GPUOBJS) -Xcompiler "-fopenmp"
+shor: $(BIN)/shor.o $(OBJS) $(GPUOBJS)
+	$(NVCC) -o $(BIN)/shor.out $(BIN)/shor.o $(OBJS) $(GPUOBJS) -Xcompiler "-fopenmp" -I$(INCLUDE)
 
-grover: grover.o $(OBJS) $(GPUOBJS)
-	$(NVCC) -o grover.out grover.o $(OBJS) $(GPUOBJS) -Xcompiler "-fopenmp"
+grover: $(BIN)/grover.o $(OBJS) $(GPUOBJS)
+	$(NVCC) -o $(BIN)/grover.out $(BIN)/grover.o $(OBJS) $(GPUOBJS) -Xcompiler "-fopenmp" -I$(INCLUDE)
 
-general: general.o $(OBJS) $(GPUOBJS)
-	$(NVCC) -o general.out general.o $(OBJS) $(GPUOBJS) -Xcompiler "-fopenmp"
+hadamard: $(BIN)/hadamard.o $(OBJS) $(GPUOBJS)
+	$(NVCC) -o $(BIN)/hadamard.out $(BIN)/hadamard.o $(OBJS) $(GPUOBJS) -Xcompiler "-fopenmp" -I$(INCLUDE)
  
 # objects
 
-dgm.o: dgm.cu
-	$(NVCC) -c dgm.cu -Xcompiler "-fopenmp -O3 -fcx-limited-range"
+$(BIN)/dgm.o: $(SRC)/dgm.cu
+	$(NVCC) -c $< -Xcompiler "-fopenmp -O3 -fcx-limited-range" -I$(INCLUDE) -o $@
 
-kernel.o: kernel.cu
-	$(NVCC) -c -D OPS_BLOCK=$(OPS_BLOCK) kernel.cu
+$(BIN)/kernel.o: $(SRC)/kernel.cu
+	$(NVCC) -c -D OPS_BLOCK=$(OPS_BLOCK) $< -I$(INCLUDE) -o $@
 
-gates.o: gates.cpp
-	$(CXX) -c gates.cpp
+$(BIN)/gates.o: $(SRC)/gates.cpp
+	$(CXX) -c $< -I$(INCLUDE) -o $@
 
-common.o: common.cpp
-	$(CXX) -c common.cpp
+$(BIN)/common.o: $(SRC)/common.cpp
+	$(CXX) -c $< -I$(INCLUDE) -o $@
 
-lib_general.o: lib_general.cpp
-	$(CXX) -c lib_general.cpp
+$(BIN)/lib_hadamard.o: $(SRC)/lib_hadamard.cpp
+	$(CXX) -c $< -I$(INCLUDE) -o $@
 
-lib_shor.o: lib_shor.cpp
-	$(CXX) -c lib_shor.cpp
+$(BIN)/lib_shor.o: $(SRC)/lib_shor.cpp
+	$(CXX) -c $< -I$(INCLUDE) -o $@
 
-lib_grover.o: lib_grover.cpp
-	$(CXX) -c lib_grover.cpp
+$(BIN)/lib_grover.o: $(SRC)/lib_grover.cpp
+	$(CXX) -c $< -I$(INCLUDE) -o $@
  
-grover.o: grover.cpp
-	$(CXX) -c grover.cpp -fopenmp
+$(BIN)/grover.o: $(SRC)/grover.cpp
+	$(CXX) -c $< -fopenmp -I$(INCLUDE) -o $@
 
-shor.o: shor.cpp
-	$(CXX) -c shor.cpp -fopenmp
+$(BIN)/shor.o: $(SRC)/shor.cpp
+	$(CXX) -c $< -fopenmp -I$(INCLUDE) -o $@
  
-general.o: general.cpp
-	$(CXX) -c general.cpp -fopenmp 
+$(BIN)/hadamard.o: $(SRC)/hadamard.cpp
+	$(CXX) -c $< -fopenmp -I$(INCLUDE) -o $@
 
 clean:
-	rm *.o *.out
+	rm $(BIN)/*
