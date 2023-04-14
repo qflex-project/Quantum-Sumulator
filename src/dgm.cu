@@ -830,61 +830,27 @@ void PCpuExecution1(float complex *state, PT **pts, int qubits, long n_threads, 
 		if (count < region)
 			region = count;
 
-		long reg_count = (1 << (qubits - region)) + 1; 				//Número de regiões 			-	 +1 para a condição de parada incluir todos
+		long reg_count = (1 << (qubits - region)); 				//Número de regiões
 		long pos_count = 1 << (region - 1); 						//Número de posições na região 	-	 -1 porque são duas posições por iteração
 
 		omp_set_num_threads(n_threads);
 
 		long ext_reg_id = 0;	//contador 'global' do número de regiões já computadas
 
-		long* reg_ids = (long*) malloc((reg_count-1)*sizeof(long));
+		long* reg_ids = (long*) malloc((reg_count)*sizeof(long));
 
-		for (size_t i = 0; i < reg_count-1; i++)	
+		for (size_t i = 0; i < reg_count; i++)	
 		{
 			reg_ids[i] = ext_reg_id;
 			ext_reg_id = (ext_reg_id + reg_mask + 1) & ~reg_mask;
 		}
 
-		#pragma omp parallel for
-		for (size_t i = 0; i < reg_count-1; i++) {
+		#pragma omp parallel for schedule(runtime)
+		for (size_t i = 0; i < reg_count; i++) {
 			PCpuExecution1_0(state, pts, qubits, start, end, pos_count, reg_ids[i], reg_mask);
 		}
 
-
-		// #pragma omp parallel
-		// {
-
-		// 	long reg_id;		//indentificador local da região
-
-		// 	//Define a primeira região (reg_id) da thread
-		// 	#pragma omp critical (teste)
-		// 	{
-		// 		reg_id = ext_reg_id;
-		// 		ext_reg_id = (ext_reg_id + reg_mask + 1) & ~reg_mask;
-		// 		reg_count--;
-		// 		if (reg_count <= 0)
-		// 			reg_id = -1;
-		// 	}
-
-		// 	int print = (omp_get_thread_num()==0);
-			
-			
-		// 	while (reg_id != -1){		
-		// 		//Computa os operadores
-		// 		PCpuExecution1_0(state, pts, qubits, start, end, pos_count, reg_id, reg_mask);
-		
-		// 		//Define a próxima região (reg_id) da thread
-		// 		#pragma omp critical (teste)
-		// 		{
-		// 			reg_id = ext_reg_id;
-		// 			ext_reg_id = (ext_reg_id + reg_mask + 1) & ~reg_mask;
-		// 			reg_count--;
-		// 			if (reg_count <= 0)
-		// 				reg_id = -1;
-		// 		}
-		// 	}
-
-		// }
+		free(reg_ids);
 	}
 }
 
