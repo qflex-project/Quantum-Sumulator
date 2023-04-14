@@ -814,7 +814,7 @@ void PCpuExecution1(float complex *state, PT **pts, int qubits, long n_threads, 
 			else
 				break;
 		}
-		end = i;													//Executa até o operador na posiçao 'i' (exclusive) nesta iteração
+		end = i;	//Executa até o operador na posiçao 'i' (exclusive) nesta iteração
 
 
 		//Se o número de qubits na região (count) não tiver atingido o limite (region),
@@ -830,8 +830,8 @@ void PCpuExecution1(float complex *state, PT **pts, int qubits, long n_threads, 
 		if (count < region)
 			region = count;
 
-		long reg_count = (1 << (qubits - region)); 				//Número de regiões
-		long pos_count = 1 << (region - 1); 						//Número de posições na região 	-	 -1 porque são duas posições por iteração
+		long reg_count = (1 << (qubits - region));	//Número de regiões
+		long pos_count = 1 << (region - 1);			//Número de posições na região: -1 porque são duas posições por iteração
 
 		omp_set_num_threads(n_threads);
 
@@ -839,15 +839,15 @@ void PCpuExecution1(float complex *state, PT **pts, int qubits, long n_threads, 
 
 		long* reg_ids = (long*) malloc((reg_count)*sizeof(long));
 
-		for (size_t i = 0; i < reg_count; i++)	
+		for (size_t j = 0; j < reg_count; j++)	
 		{
-			reg_ids[i] = ext_reg_id;
+			reg_ids[j] = ext_reg_id;
 			ext_reg_id = (ext_reg_id + reg_mask + 1) & ~reg_mask;
 		}
 
 		#pragma omp parallel for schedule(runtime)
-		for (size_t i = 0; i < reg_count; i++) {
-			PCpuExecution1_0(state, pts, qubits, start, end, pos_count, reg_ids[i], reg_mask);
+		for (size_t j = 0; j < reg_count; j++) {
+			PCpuExecution1_0(state, pts, qubits, start, end, pos_count, reg_ids[j], reg_mask);
 		}
 
 		free(reg_ids);
@@ -862,11 +862,11 @@ void PCpuExecution1_0(float complex *state, PT **pts, int qubits, int start, int
 
 	for (int op = start; op < end; op++){
 		QG = pts[op];
-		long shift = (1 << QG->end);						//mascara com a posição do qubit do operador
+		long shift = (1 << QG->end);	//mascara com a posição do qubit do operador
 		long mt = QG->matrixType();
 		//if (mt == DIAG_PRI) shift = coalesc;	//se for um operador de diagonal principal, a posição do qubit não é relevante
-		long pos_mask = reg_mask & ~shift;			//mascara da posição --- retira o 'shift' da reg_mask, para o 'inc pular sobre ' esse bit também
-		long inc = ~pos_mask + 1;						  	//usado para calcular a proxima posição de uma região
+		long pos_mask = reg_mask & ~shift;	//mascara da posição --- retira o 'shift' da reg_mask, para o 'inc pular sobre ' esse bit também
+		long inc = ~pos_mask + 1;	//usado para calcular a proxima posição de uma região
 		long pos = 0;
 					
 		if (!QG->ctrl_count){
