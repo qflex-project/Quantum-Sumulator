@@ -132,7 +132,7 @@ void GpuExecution01(float* state, PT **pts, int qubits, int qbs_region, int mult
 	long mem_size = pow(2.0, qubits);
 	long mem_desloc = mem_size/multi_gpu;
 
-	int rept_bits = log2(t_REPT);
+	int rept_bits = (int)log2((float)t_REPT);
 	
 	long nth = mem_size/multi_gpu/t_REPT/2;	// /2 porque cada thread fica responsável por duas posições & /2 pelas 2 GPUS
 

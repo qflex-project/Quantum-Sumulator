@@ -789,6 +789,10 @@ void DGM::CpuExecution3_3(PT *pt, long mem_size){ //Diagonal Secundária
 void PCpuExecution1(float complex *state, PT **pts, int qubits, long n_threads, int coales, int region, int it){
 	long i, start, end;
 	i = start = 0;
+
+	long max_reg_count = (1 << (qubits - region));
+	long* reg_ids = (long*) malloc((max_reg_count)*sizeof(long));
+
 	while (pts[i] != NULL){
 		long count = coales;
 		long reg_mask = (coales)? (1 << coales) - 1 : 0;
@@ -837,8 +841,6 @@ void PCpuExecution1(float complex *state, PT **pts, int qubits, long n_threads, 
 
 		long ext_reg_id = 0;	//contador 'global' do número de regiões já computadas
 
-		long* reg_ids = (long*) malloc((reg_count)*sizeof(long));
-
 		for (size_t j = 0; j < reg_count; j++)	
 		{
 			reg_ids[j] = ext_reg_id;
@@ -850,8 +852,8 @@ void PCpuExecution1(float complex *state, PT **pts, int qubits, long n_threads, 
 			PCpuExecution1_0(state, pts, qubits, start, end, pos_count, reg_ids[j], reg_mask);
 		}
 
-		free(reg_ids);
 	}
+	free(reg_ids);
 }
 
 void PCpuExecution1_0(float complex *state, PT **pts, int qubits, int start, int end, int pos_count, int reg_id, int reg_mask){
@@ -1173,7 +1175,7 @@ void DGM::HybridExecution(PT **pts){
 							aux->ctrl_value = pts[gpu_i]->ctrl_value & global_reg_mask;
 
 							aux->end = map_qb[pts[gpu_i]->end];
-							aux->start = aux->end - log2(aux->mat_size);
+							aux->start = aux->end - log2((float)aux->mat_size);
 
 							aux->ctrl_count = 0;
 							for (int c = global_coales; c < qubits; c++){
