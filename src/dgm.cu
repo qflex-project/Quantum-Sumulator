@@ -789,10 +789,6 @@ void DGM::CpuExecution3_3(PT *pt, long mem_size){ //Diagonal Secundária
 void PCpuExecution1(float complex *state, PT **pts, int qubits, long n_threads, int coales, int region, int it){
 	long i, start, end;
 	i = start = 0;
-
-	long max_reg_count = (1 << (qubits - region));
-	long* reg_ids = (long*) malloc((max_reg_count)*sizeof(long));
-
 	while (pts[i] != NULL){
 		long count = coales;
 		long reg_mask = (coales)? (1 << coales) - 1 : 0;
@@ -840,20 +836,24 @@ void PCpuExecution1(float complex *state, PT **pts, int qubits, long n_threads, 
 		omp_set_num_threads(n_threads);
 
 		long ext_reg_id = 0;	//contador 'global' do número de regiões já computadas
-
-		for (size_t j = 0; j < reg_count; j++)	
+		long reg_id = 0;
+		#pragma omp parallel 
 		{
-			reg_ids[j] = ext_reg_id;
-			ext_reg_id = (ext_reg_id + reg_mask + 1) & ~reg_mask;
+			#pragma omp single nowait	
+			{
+				for (size_t j = 0; j < reg_count; j++)	
+				{
+					reg_id = ext_reg_id;
+					ext_reg_id = (ext_reg_id + reg_mask + 1) & ~reg_mask;
+					#pragma omp task
+					{
+						PCpuExecution1_0(state, pts, qubits, start, end, pos_count, reg_id, reg_mask);
+					}
+				}
+			}
+			#pragma omp taskwait
 		}
-
-		#pragma omp parallel for schedule(runtime)
-		for (size_t j = 0; j < reg_count; j++) {
-			PCpuExecution1_0(state, pts, qubits, start, end, pos_count, reg_ids[j], reg_mask);
-		}
-
 	}
-	free(reg_ids);
 }
 
 void PCpuExecution1_0(float complex *state, PT **pts, int qubits, int start, int end, int pos_count, int reg_id, int reg_mask){
