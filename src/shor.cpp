@@ -44,6 +44,14 @@ int main(int argc, char** argv){
 	}
 	srand(seed);
 
+	if (argc > 4) {
+		cpu_region = atoi(argv[4]);
+	}
+
+	if (argc > 5) {
+		cpu_coalesc = atoi(argv[5]);
+	}
+
 	if (execType < t_CPU || execType > t_HYBRID){
 		cout << "Invalid execution type: " << execType << endl; 
 		return 0;
@@ -52,8 +60,8 @@ int main(int argc, char** argv){
 	if (execType == t_PAR_CPU || execType == t_HYBRID) {
 		n_threads = omp_get_max_threads();
 	} else if (execType == t_GPU) {
-		if (argc > 4) {
-			multi_gpu = atoi(argv[4]);
+		if (argc > 6) {
+			multi_gpu = atoi(argv[6]);
 		}
 	}
 
@@ -67,6 +75,9 @@ int main(int argc, char** argv){
 	timeval_subtract(&timev, &tvEnd, &tvBegin);
 	t = timev.tv_sec + (timev.tv_usec / 1000000.0);
 	
+	long reg_size_per_thread = (1 << (qubits - cpu_region));
+	std::cout << "reg_size_per_thread: " << reg_size_per_thread << std::endl;
+
 	cout << "Time: " << t << endl;
 
 	if (factors.size() == 2) {
