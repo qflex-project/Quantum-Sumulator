@@ -839,19 +839,18 @@ void PCpuExecution1(float complex *state, PT **pts, int qubits, long n_threads, 
 		long reg_id = 0;
 		#pragma omp parallel 
 		{
-			#pragma omp single nowait	
+			#pragma omp single 	
 			{
 				for (size_t j = 0; j < reg_count; j++)	
 				{
 					reg_id = ext_reg_id;
 					ext_reg_id = (ext_reg_id + reg_mask + 1) & ~reg_mask;
-					#pragma omp task
+					#pragma omp task untied
 					{
 						PCpuExecution1_0(state, pts, qubits, start, end, pos_count, reg_id, reg_mask);
 					}
 				}
 			}
-			#pragma omp taskwait
 		}
 	}
 }
