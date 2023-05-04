@@ -366,7 +366,8 @@ float complex* DGM::execute(int it){
 			CpuExecution1(it);
 			break;
 		case t_PAR_CPU:
-			PCpuExecution1(state, pts, qubits, n_threads, cpu_coales, cpu_region, it);
+			// PCpuExecution1(state, pts, qubits, n_threads, cpu_coales, cpu_region, it);
+			PCpuExecution2(it);
 			break;
 		case t_GPU:
 			result = GpuExecutionWrapper(state, pts, qubits, gpu_coales, gpu_region, multi_gpu, tam_block, rept, it);
@@ -785,6 +786,126 @@ void DGM::CpuExecution3_3(PT *pt, long mem_size){ //Diagonal Secundária
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+void DGM::PCpuExecution2(int it){
+	long mem_size = pow(2.0, qubits);
+	// printf("mem_size: %ld\n", &mem_size);
+
+	for (int x = 0; x < it; x++){
+		long i = 0;
+		while (pts[i] != NULL){
+			switch (pts[i]->matrixType()){
+				case DENSE:
+					PCpuExecution1_1(pts[i], mem_size);
+					break;
+				case DIAG_PRI:
+					PCpuExecution1_2(pts[i], mem_size);
+					break;
+				case DIAG_SEC:
+					PCpuExecution1_3(pts[i], mem_size);
+					break;
+				default:
+					exit(1);
+			}
+			i++;	
+		}
+	}
+}
+
+
+void DGM::PCpuExecution1_1(PT *pt, long mem_size){ //Denso
+	long pos0, pos1, shift;
+	
+	shift = 1 << pt->end;
+	
+	float complex tmp;
+		
+	if (!pt->ctrl_count){ 			//operador não controlado
+		mem_size /= 2;
+		#pragma omp parallel for schedule(static)
+		for (long pos = 0; pos < mem_size; pos++){
+			pos0 = (pos * 2) - (pos & (shift-1));
+			pos1 = pos0 | shift;
+
+			tmp = pt->matrix[0] * state[pos0] + pt->matrix[1] * state[pos1];
+			state[pos1] = pt->matrix[2] * state[pos0] + pt->matrix[3] * state[pos1];
+			state[pos0] = tmp;
+		}
+	}
+	else{					//operador controlado
+		long mask = ~(pt->ctrl_mask | shift);
+		long inc = (~mask) + 1;
+
+		#pragma omp parallel for schedule(static)
+		for (long pos = 0; pos < mem_size; pos = pos+inc){
+			pos0 = (pos & mask) | pt->ctrl_value;
+			pos1 = pos0 | shift;
+
+			tmp = pt->matrix[0] * state[pos0] + pt->matrix[1] * state[pos1];
+			state[pos1] = pt->matrix[2] * state[pos0] + pt->matrix[3] * state[pos1];			
+			state[pos0] = tmp;
+		}
+	}
+}
+
+void DGM::PCpuExecution1_2(PT *pt, long mem_size){ //Diagonal Principal
+	long pos0, shift = pt->end;
+		
+	if (!pt->ctrl_count)	//operador não controlado
+		#pragma omp parallel for schedule(static)
+		for (long pos = 0; pos < mem_size; pos++)
+			state[pos] = pt->matrix[((pos >> shift) & 1) * 3] * state[pos];
+	else{					//operador controlado
+		long mask = ~(pt->ctrl_mask);
+		long inc = (~mask) + 1;
+
+		#pragma omp parallel for schedule(static)
+		for (long pos = 0; pos < mem_size; pos = pos+inc){
+			pos0 = (pos & mask)| pt->ctrl_value;
+
+			state[pos0] = pt->matrix[((pos0 >> shift) & 1) * 3] * state[pos0];
+		}
+	}
+}
+
+void DGM::PCpuExecution1_3(PT *pt, long mem_size){ //Diagonal Secundária
+	long pos0, pos1, shift;
+	
+	shift = 1 << pt->end;
+
+	float complex tmp;
+		
+	if (!pt->ctrl_count){ 	//operador não controlado
+		mem_size /= 2;
+
+		#pragma omp parallel for schedule(static)
+		for (long pos = 0; pos < mem_size; pos++){
+			pos0 = (pos * 2) - (pos & (shift-1));
+			pos1 = pos0 | shift;
+
+			tmp = pt->matrix[1] * state[pos1];
+			state[pos1] = pt->matrix[2] * state[pos0];
+			state[pos0] = tmp;
+		}
+	}
+	else{					//operador controlado
+		long mask = ~(pt->ctrl_mask | shift);
+		long inc = (~mask) + 1;
+		
+		#pragma omp parallel for schedule(static)
+		for (long pos = 0; pos < mem_size; pos = (pos+inc)){
+			pos0 = (pos & mask) | pt->ctrl_value;
+			pos1 = pos0 | shift;
+
+			tmp = pt->matrix[1] * state[pos1];
+			state[pos1] = pt->matrix[2] * state[pos0];
+			state[pos0] = tmp;
+		}
+	}
+}
+
+/////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////
 
 void PCpuExecution1(float complex *state, PT **pts, int qubits, long n_threads, int coales, int region, int it){
 	long i, start, end;

@@ -133,6 +133,11 @@ public:
 	void CpuExecution1_2(PT *pt, long mem_size);
 	void CpuExecution1_3(PT *pt, long mem_size);
 
+	void PCpuExecution2(int it);
+	void PCpuExecution1_1(PT *pt, long mem_size);
+	void PCpuExecution1_2(PT *pt, long mem_size);
+	void PCpuExecution1_3(PT *pt, long mem_size);
+
 	//void CpuExecution1(int it);
 	void CpuExecution2_1(PT *pt, long mem_size);
 	void CpuExecution2_2(PT *pt, long mem_size);
