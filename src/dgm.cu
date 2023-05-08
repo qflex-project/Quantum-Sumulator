@@ -789,10 +789,6 @@ void DGM::CpuExecution3_3(PT *pt, long mem_size){ //Diagonal Secundária
 void PCpuExecution1(float complex *state, PT **pts, int qubits, long n_threads, int coales, int region, int it){
 	long i, start, end;
 	i = start = 0;
-
-	long max_reg_count = (1 << (qubits - region));
-	long* reg_ids = (long*) malloc((max_reg_count)*sizeof(long));
-
 	while (pts[i] != NULL){
 		long count = coales;
 		long reg_mask = (coales)? (1 << coales) - 1 : 0;
@@ -818,7 +814,7 @@ void PCpuExecution1(float complex *state, PT **pts, int qubits, long n_threads, 
 			else
 				break;
 		}
-		end = i;	//Executa até o operador na posiçao 'i' (exclusive) nesta iteração
+		end = i;													//Executa até o operador na posiçao 'i' (exclusive) nesta iteração
 
 
 		//Se o número de qubits na região (count) não tiver atingido o limite (region),
@@ -834,26 +830,48 @@ void PCpuExecution1(float complex *state, PT **pts, int qubits, long n_threads, 
 		if (count < region)
 			region = count;
 
-		long reg_count = (1 << (qubits - region));	//Número de regiões
-		long pos_count = 1 << (region - 1);			//Número de posições na região: -1 porque são duas posições por iteração
+		long reg_count = (1 << (qubits - region)) + 1; 				//Número de regiões 			-	 +1 para a condição de parada incluir todos
+		long pos_count = 1 << (region - 1); 						//Número de posições na região 	-	 -1 porque são duas posições por iteração
 
 		omp_set_num_threads(n_threads);
 
 		long ext_reg_id = 0;	//contador 'global' do número de regiões já computadas
 
-		for (size_t j = 0; j < reg_count; j++)	
+		#pragma omp parallel
 		{
-			reg_ids[j] = ext_reg_id;
-			ext_reg_id = (ext_reg_id + reg_mask + 1) & ~reg_mask;
-		}
 
-		#pragma omp parallel for schedule(runtime)
-		for (size_t j = 0; j < reg_count; j++) {
-			PCpuExecution1_0(state, pts, qubits, start, end, pos_count, reg_ids[j], reg_mask);
-		}
+			long reg_id;		//indentificador local da região
 
+			//Define a primeira região (reg_id) da thread
+			#pragma omp critical (teste)
+			{
+				reg_id = ext_reg_id;
+				ext_reg_id = (ext_reg_id + reg_mask + 1) & ~reg_mask;
+				reg_count--;
+				if (reg_count <= 0)
+					reg_id = -1;
+			}
+
+			int print = (omp_get_thread_num()==0);
+			
+			
+			while (reg_id != -1){		
+				//Computa os operadores
+				PCpuExecution1_0(state, pts, qubits, start, end, pos_count, reg_id, reg_mask);
+		
+				//Define a próxima região (reg_id) da thread
+				#pragma omp critical (teste)
+				{
+					reg_id = ext_reg_id;
+					ext_reg_id = (ext_reg_id + reg_mask + 1) & ~reg_mask;
+					reg_count--;
+					if (reg_count <= 0)
+						reg_id = -1;
+				}
+			}
+
+		}
 	}
-	free(reg_ids);
 }
 
 void PCpuExecution1_0(float complex *state, PT **pts, int qubits, int start, int end, int pos_count, int reg_id, int reg_mask){
@@ -864,11 +882,11 @@ void PCpuExecution1_0(float complex *state, PT **pts, int qubits, int start, int
 
 	for (int op = start; op < end; op++){
 		QG = pts[op];
-		long shift = (1 << QG->end);	//mascara com a posição do qubit do operador
+		long shift = (1 << QG->end);						//mascara com a posição do qubit do operador
 		long mt = QG->matrixType();
 		//if (mt == DIAG_PRI) shift = coalesc;	//se for um operador de diagonal principal, a posição do qubit não é relevante
-		long pos_mask = reg_mask & ~shift;	//mascara da posição --- retira o 'shift' da reg_mask, para o 'inc pular sobre ' esse bit também
-		long inc = ~pos_mask + 1;	//usado para calcular a proxima posição de uma região
+		long pos_mask = reg_mask & ~shift;			//mascara da posição --- retira o 'shift' da reg_mask, para o 'inc pular sobre ' esse bit também
+		long inc = ~pos_mask + 1;						  	//usado para calcular a proxima posição de uma região
 		long pos = 0;
 					
 		if (!QG->ctrl_count){
@@ -989,7 +1007,7 @@ void DGM::HybridExecution(PT **pts){
 	long global_region = qubits_limit;
 	long global_start, global_end;
 
-	long global_count, global_reg_mask, global_reg_count, ext_proj_id; //, global_pos_count; //atualmente não utilizada
+	long global_count, global_reg_mask, global_reg_count, global_pos_count, ext_proj_id; 
 
 	omp_set_num_threads(n_threads);
 
@@ -1034,7 +1052,7 @@ void DGM::HybridExecution(PT **pts){
 			global_region = global_count;
 	
 		global_reg_count = (1 << (qubits - global_region)) + 1; 				//Número de regiões	- +1 para a condição de parada incluir todos
-		// global_pos_count = 1 << (global_region - 1); // Atualmente não utilizada
+		global_pos_count = 1 << (global_region - 1);
 
 		/////////////////////////////////////////////////////////////////////////////////////////////////////
 
@@ -1175,7 +1193,7 @@ void DGM::HybridExecution(PT **pts){
 							aux->ctrl_value = pts[gpu_i]->ctrl_value & global_reg_mask;
 
 							aux->end = map_qb[pts[gpu_i]->end];
-							aux->start = aux->end - log2((float)aux->mat_size);
+							aux->start = aux->end - log2(aux->mat_size);
 
 							aux->ctrl_count = 0;
 							for (int c = global_coales; c < qubits; c++){
