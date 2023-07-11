@@ -10,13 +10,18 @@ using namespace std;
 
 int main(int argc, char** argv){
 	map <int, int> qubitsMap;
-	qubitsMap[15] = 57;	
-	qubitsMap[17] = 119;
-	qubitsMap[19] = 253;
-	qubitsMap[21] = 485;
-	qubitsMap[23] = 1017;
-	qubitsMap[25] = 2045;
-	qubitsMap[27] = 2863;
+	// for tests
+	qubitsMap[15] = 3*19;	
+	qubitsMap[17] = 7*17;
+	qubitsMap[19] = 11*23;
+	// for analysis
+	qubitsMap[21] = 97*5;
+	qubitsMap[22] = 107*7;
+	qubitsMap[23] = 3*3*113;
+	qubitsMap[24] = 5*317;
+	qubitsMap[25] = 5*409;
+	qubitsMap[26] = 3*433;
+	qubitsMap[27] = 7*409;
 
 	struct timeval timev, tvBegin, tvEnd;
 	float t;
