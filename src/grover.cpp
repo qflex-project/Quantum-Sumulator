@@ -43,6 +43,22 @@ int main(int argc, char **argv){
 		value = atoi(argv[6]);
 	}
 
+	if (argc > 7) {
+		gpu_region = atoi(argv[7]);
+	}
+
+	if (argc > 8) {
+		gpu_coalesc = atoi(argv[8]);
+	}
+
+	if (argc > 9) {
+		tam_block = atoi(argv[9]);
+	}
+
+	if (argc > 10) {
+		rept = atoi(argv[10]);
+	}
+
 	if (execType < t_CPU || execType > t_HYBRID){
 		cout << "Invalid execution type: " << execType << endl; 
 		return 0;
@@ -51,8 +67,8 @@ int main(int argc, char **argv){
 	if (execType == t_PAR_CPU || execType == t_HYBRID) {
 		n_threads = omp_get_max_threads();
 	} else if (execType == t_GPU) {
-		if (argc > 7) {
-			multi_gpu = atoi(argv[7]);
+		if (argc > 11) {
+			multi_gpu = atoi(argv[11]);
 		}
 	}
  

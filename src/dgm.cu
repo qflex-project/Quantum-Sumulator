@@ -789,6 +789,8 @@ void DGM::CpuExecution3_3(PT *pt, long mem_size){ //Diagonal Secundária
 void PCpuExecution1(float complex *state, PT **pts, int qubits, long n_threads, int coales, int region, int it){
 	long i, start, end;
 	i = start = 0;
+	omp_set_num_threads(n_threads);
+
 	while (pts[i] != NULL){
 		long count = coales;
 		long reg_mask = (coales)? (1 << coales) - 1 : 0;
@@ -808,11 +810,8 @@ void PCpuExecution1(float complex *state, PT **pts, int qubits, long n_threads, 
 			i++;
 		}
 		//Segue acerscentado até encontrar um operador que não esteja dentro da região
-		while (pts[i] != NULL){
-			if (((reg_mask >> pts[i]->end) & 1))// || pts[i]->matrixType() == DIAG_PRI)
-				i++;
-			else
-				break;
+		while (pts[i] != NULL && ((reg_mask >> pts[i]->end) & 1)){
+			i++;
 		}
 		end = i;	//Executa até o operador na posiçao 'i' (exclusive) nesta iteração
 
@@ -832,8 +831,6 @@ void PCpuExecution1(float complex *state, PT **pts, int qubits, long n_threads, 
 
 		long reg_count = (1 << (qubits - region));	//Número de regiões
 		long pos_count = 1 << (region - 1);			//Número de posições na região: -1 porque são duas posições por iteração
-
-		omp_set_num_threads(n_threads);
 
 		long ext_reg_id = 0;	//contador 'global' do número de regiões já computadas
 		long reg_id = 0;
@@ -885,25 +882,25 @@ void PCpuExecution1_0(float complex *state, PT **pts, int qubits, int start, int
 					break;
 				case DIAG_PRI:
 					for (long p = 0; p < pos_count; p++){
-							pos0 = pos | reg_id;
-							pos1 = pos0 | shift;
-							pos = (pos+inc) & pos_mask;
+						pos0 = pos | reg_id;
+						pos1 = pos0 | shift;
+						pos = (pos+inc) & pos_mask;
 
-							tmp			= QG->matrix[3] * state[pos1];
-							state[pos0] *= QG->matrix[0];// * state[pos0];
-							state[pos1] = tmp;// * state[pos1];tmp;
+						tmp			= QG->matrix[3] * state[pos1];
+						state[pos0] *= QG->matrix[0];// * state[pos0];
+						state[pos1] = tmp;// * state[pos1];tmp;
 					}
 					break;
 				
 				case DIAG_SEC:
 					for (long p = 0; p < pos_count; p++){
-							pos0 = pos | reg_id;
-							pos1 = pos0 | shift;
-							pos = (pos+inc) & pos_mask;
+						pos0 = pos | reg_id;
+						pos1 = pos0 | shift;
+						pos = (pos+inc) & pos_mask;
 
-							tmp 		= QG->matrix[2] * state[pos0];
-							state[pos0] = QG->matrix[1] * state[pos1];
-							state[pos1] = tmp;
+						tmp 		= QG->matrix[2] * state[pos0];
+						state[pos0] = QG->matrix[1] * state[pos1];
+						state[pos1] = tmp;
 					}
 					break;
 				default:

@@ -34,12 +34,12 @@ int main(int argc, char** argv){
 		cout << "The amount of qubits does not map to a valid number to be factored: " << qubits << endl; 
 		return 0;
 	}
- 
+
 	if (argc > 2) {
 		execType = atoi(argv[2]);
 	}
 
-	if (argc > 3) {
+  	if (argc > 3) {
 		seed = atoi(argv[3]);
 	}
 	srand(seed);
@@ -52,6 +52,22 @@ int main(int argc, char** argv){
 		cpu_coalesc = atoi(argv[5]);
 	}
 
+	if (argc > 6) {
+		gpu_region = atoi(argv[6]);
+	}
+
+	if (argc > 7) {
+		gpu_coalesc = atoi(argv[7]);
+	}
+
+	if (argc > 8) {
+		tam_block = atoi(argv[8]);
+	}
+
+	if (argc > 9) {
+		rept = atoi(argv[9]);
+	}
+
 	if (execType < t_CPU || execType > t_HYBRID){
 		cout << "Invalid execution type: " << execType << endl; 
 		return 0;
@@ -60,8 +76,8 @@ int main(int argc, char** argv){
 	if (execType == t_PAR_CPU || execType == t_HYBRID) {
 		n_threads = omp_get_max_threads();
 	} else if (execType == t_GPU) {
-		if (argc > 6) {
-			multi_gpu = atoi(argv[6]);
+		if (argc > 10) {
+			multi_gpu = atoi(argv[10]);
 		}
 	}
 
