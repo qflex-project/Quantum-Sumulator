@@ -16,11 +16,8 @@ int main(int argc, char** argv){
 	qubitsMap[19] = 11*23;
 	// for analysis
 	qubitsMap[21] = 97*5;
-	qubitsMap[22] = 107*7;
 	qubitsMap[23] = 3*3*113;
-	qubitsMap[24] = 5*317;
 	qubitsMap[25] = 5*409;
-	qubitsMap[26] = 3*433;
 	qubitsMap[27] = 7*409;
 
 	struct timeval timev, tvBegin, tvEnd;
