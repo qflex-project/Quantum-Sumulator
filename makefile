@@ -1,8 +1,8 @@
 # Build tools
 
-CXX = clang++
+CXX = g++ -std=c++03
 ARCH = sm_70
-NVCC = nvcc -arch=$(ARCH) #-ccbin $(CXX)
+NVCC = nvcc -arch=$(ARCH) -std=c++03 #-ccbin $(CXX)
 
 CXX_ARGS = -fopenmp -Ofast
 NVCC_ARGS = -Xcompiler "$(CXX_ARGS)"
@@ -16,56 +16,64 @@ INCLUDE=./include
 OPS_BLOCK=300
 
 # here are all the objects
-GPUOBJS = $(BIN)/kernel.o
-OBJS = $(BIN)/dgm.o $(BIN)/common.o $(BIN)/gates.o $(BIN)/lib_hadamard.o $(BIN)/lib_shor.o $(BIN)/lib_grover.o
-
+GPUOBJS = $(BIN)/gpu.o
+OBJS =  $(BIN)/common.o $(BIN)/pt.o  $(BIN)/dgm.o $(BIN)/gates.o $(BIN)/lib_hadamard.o $(BIN)/lib_shor.o $(BIN)/lib_grover.o
 
 # make and compile
-
 all: shor grover hadamard
+
+# debug
+debug: CXX_ARGS += -DDEBUG -g
+debug: all
 
 # executables
 
 shor: $(BIN)/shor.o $(OBJS) $(GPUOBJS)
-	$(NVCC) $< $(OBJS) $(GPUOBJS) $(NVCC_ARGS) -I$(INCLUDE) -o $(BIN)/shor.out
+	$(NVCC) $< $(OBJS) $(GPUOBJS) -I$(INCLUDE) -o $(BIN)/shor.out $(NVCC_ARGS) 
 
 grover: $(BIN)/grover.o $(OBJS) $(GPUOBJS)
-	$(NVCC) $< $(OBJS) $(GPUOBJS) $(NVCC_ARGS) -I$(INCLUDE) -o $(BIN)/grover.out
+	$(NVCC) $< $(OBJS) $(GPUOBJS) -I$(INCLUDE) -o $(BIN)/grover.out $(NVCC_ARGS) 
 
 hadamard: $(BIN)/hadamard.o $(OBJS) $(GPUOBJS)
-	$(NVCC) $< $(OBJS) $(GPUOBJS) $(NVCC_ARGS) -I$(INCLUDE) -o $(BIN)/hadamard.out
+	$(NVCC) $< $(OBJS) $(GPUOBJS) -I$(INCLUDE) -o $(BIN)/hadamard.out $(NVCC_ARGS) 
  
 # objects
 
+$(BIN)/pt.o: $(SRC)/pt.cpp
+	$(CXX) -c $< -I$(INCLUDE) -o $@ $(CXX_ARGS) 
+
 $(BIN)/common.o: $(SRC)/common.cpp
-	$(CXX) -c $< $(CXX_ARGS) -I$(INCLUDE) -o $@
+	$(CXX) -c $< -I$(INCLUDE) -o $@ $(CXX_ARGS) 
+
+$(BIN)/pcpu.o: $(SRC)/pcpu.cpp
+	$(CXX) -c $< -I$(INCLUDE) -o $@ $(CXX_ARGS) 
 
 $(BIN)/dgm.o: $(SRC)/dgm.cu
-	$(NVCC) -c $< $(NVCC_ARGS) -I$(INCLUDE) -o $@
+	$(NVCC) -c $< -I$(INCLUDE) -o $@ $(NVCC_ARGS) 
 
 $(BIN)/gates.o: $(SRC)/gates.cpp
-	$(CXX) -c $< $(CXX_ARGS) -I$(INCLUDE) -o $@
+	$(CXX) -c $< -I$(INCLUDE) -o $@ $(CXX_ARGS) 
 
-$(BIN)/kernel.o: $(SRC)/kernel.cu
-	$(NVCC) -c $< $(NVCC_ARGS) -I$(INCLUDE) -D OPS_BLOCK=$(OPS_BLOCK) -o $@
+$(BIN)/gpu.o: $(SRC)/gpu.cu
+	$(NVCC) -c $< -I$(INCLUDE) -D OPS_BLOCK=$(OPS_BLOCK) -o $@ $(NVCC_ARGS) 
 
 $(BIN)/lib_grover.o: $(SRC)/lib_grover.cpp
-	$(CXX) -c $< $(CXX_ARGS) -I$(INCLUDE) -o $@
+	$(CXX) -c $< -I$(INCLUDE) -o $@ $(CXX_ARGS) 
 
 $(BIN)/lib_hadamard.o: $(SRC)/lib_hadamard.cpp
-	$(CXX) -c $< $(CXX_ARGS) -I$(INCLUDE) -o $@
+	$(CXX) -c $< -I$(INCLUDE) -o $@ $(CXX_ARGS) 
 
 $(BIN)/lib_shor.o: $(SRC)/lib_shor.cpp
-	$(CXX) -c $< $(CXX_ARGS) -I$(INCLUDE) -o $@
+	$(CXX) -c $< -I$(INCLUDE) -o $@ $(CXX_ARGS) 
 
 $(BIN)/grover.o: $(SRC)/grover.cpp
-	$(CXX) -c $< $(CXX_ARGS) -I$(INCLUDE) -o $@
+	$(CXX) -c $< -I$(INCLUDE) -o $@ $(CXX_ARGS) 
 
 $(BIN)/hadamard.o: $(SRC)/hadamard.cpp
-	$(CXX) -c $< $(CXX_ARGS) -I$(INCLUDE) -o $@
+	$(CXX) -c $< -I$(INCLUDE) -o $@ $(CXX_ARGS) 
 
 $(BIN)/shor.o: $(SRC)/shor.cpp
-	$(CXX) -c $< $(CXX_ARGS) -I$(INCLUDE) -o $@
+	$(CXX) -c $< -I$(INCLUDE) -o $@ $(CXX_ARGS) 
 
 clean:
 	rm $(BIN)/*
