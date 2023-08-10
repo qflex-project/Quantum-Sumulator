@@ -45,17 +45,32 @@ class Group {
   bool isAfected(int pos, int afect);
 };
 
+struct OPSCounter {
+  long total_op = 0;
+  long dense = 0;
+  long main_diag = 0;
+  long sec_diag = 0;
+  long c_dense = 0;
+  long c_main_diag = 0;
+  long c_sec_diag = 0;
+};
+
+struct CPUParams {
+  long n_threads;
+  long cpu_coales;
+  long cpu_region;
+};
+
+struct GPUParams {
+  int multi_gpu;
+  long gpu_coales;
+  long gpu_region;
+  int tam_block;
+  int rept;
+};
+
 class DGM {
  public:
-  // counters
-  long total_op;
-  long dense;
-  long main_diag;
-  long sec_diag;
-  long c_dense;
-  long c_main_diag;
-  long c_sec_diag;
-
   std::vector<std::string> diag;
   long MAX_QB;
   long MAX_PT;
@@ -65,16 +80,8 @@ class DGM {
 
   int exec_type;
 
-  long n_threads;
-  long cpu_coales;
-  long cpu_region;
-
-  int multi_gpu;
-  long gpu_coales;
-  long gpu_region;
-
-  int tam_block;
-  int rept;
+  CPUParams cpu_params;
+  GPUParams gpu_params;
 
   std::vector<PT *> vec_pts;
   PT **pts;
@@ -116,7 +123,7 @@ class DGM {
                  long tam, long current, long line, long column,
                  float complex cmplx);
 
-  void CountOps(int it = 1);
+  OPSCounter CountOps(int it = 1);
 
   void executeFunction(std::string function, int it = 1);
   void executeFunction(std::vector<std::string> steps, int it = 1);
@@ -128,14 +135,6 @@ class DGM {
   void CpuExecution1_1(PT *pt, long mem_size);
   void CpuExecution1_2(PT *pt, long mem_size);
   void CpuExecution1_3(PT *pt, long mem_size);
-
-  void CpuExecution2_1(PT *pt, long mem_size);
-  void CpuExecution2_2(PT *pt, long mem_size);
-  void CpuExecution2_3(PT *pt, long mem_size);
-
-  void CpuExecution3_1(PT *pt, long mem_size);
-  void CpuExecution3_2(PT *pt, long mem_size);
-  void CpuExecution3_3(PT *pt, long mem_size);
 };
 
 #endif

@@ -33,7 +33,7 @@ float complex *GenericExecute(float complex *state, std::string function,
                               int factor = 0) {
   DGM dgm;
   dgm.exec_type = type;
-  dgm.n_threads = threads;
+  dgm.cpu_params.n_threads = threads;
   dgm.qubits = qubits;
   dgm.factor = factor;
 
@@ -53,7 +53,7 @@ float complex *GenericExecute(float complex *state,
                               int type, int threads, int factor = 0) {
   DGM dgm;
   dgm.exec_type = type;
-  dgm.n_threads = threads;
+  dgm.cpu_params.n_threads = threads;
   dgm.qubits = qubits;
   dgm.factor = factor;
   dgm.setMemory(state);
@@ -76,7 +76,7 @@ DGM::DGM() {
   en_print = false;
   exec_type = t_CPU;
   factor = 1;
-  multi_gpu = 1;
+  gpu_params.multi_gpu = 1;
 }
 
 DGM::~DGM() { erase(); }
@@ -377,11 +377,13 @@ float complex *DGM::execute(int it) {
       CpuExecution1(it);
       break;
     case t_PAR_CPU:
-      PCpuExecution1(state, pts, qubits, n_threads, cpu_coales, cpu_region, it);
+      PCpuExecution1(state, pts, qubits, cpu_params.n_threads,
+                     cpu_params.cpu_coales, cpu_params.cpu_region, it);
       break;
     case t_GPU:
-      result = GpuExecutionWrapper(state, pts, qubits, gpu_coales, gpu_region,
-                                   multi_gpu, tam_block, rept, it);
+      result = GpuExecutionWrapper(state, pts, qubits, gpu_params.gpu_coales,
+                                   gpu_params.gpu_region, gpu_params.multi_gpu,
+                                   gpu_params.tam_block, gpu_params.rept, it);
       break;
     case t_HYBRID:
       HybridExecution(pts);
@@ -398,20 +400,20 @@ float complex *DGM::execute(int it) {
   return result;
 }
 
-void DGM::CountOps(int it) {
-  dense = main_diag = sec_diag = c_dense = c_main_diag = c_sec_diag = 0;
+OPSCounter DGM::CountOps(int it) {
+  OPSCounter counter;
 
   for (int i = 0; pts[i] != NULL; i++) {
     long mt = pts[i]->matrixType();
     switch (mt) {
       case DENSE:
-        (pts[i]->ctrl_mask) ? c_dense++ : dense++;
+        (pts[i]->ctrl_mask) ? counter.c_dense++ : counter.dense++;
         break;
       case DIAG_PRI:
-        (pts[i]->ctrl_mask) ? c_main_diag++ : main_diag++;
+        (pts[i]->ctrl_mask) ? counter.c_main_diag++ : counter.main_diag++;
         break;
       case DIAG_SEC:
-        (pts[i]->ctrl_mask) ? c_sec_diag++ : sec_diag++;
+        (pts[i]->ctrl_mask) ? counter.c_sec_diag++ : counter.sec_diag++;
         break;
       default:
         std::cout << "Error on operator type" << std::endl;
@@ -419,14 +421,17 @@ void DGM::CountOps(int it) {
     }
   }
 
-  dense *= it;
-  c_dense *= it;
-  main_diag *= it;
-  c_main_diag *= it;
-  sec_diag *= it;
-  c_sec_diag *= it;
+  counter.dense *= it;
+  counter.c_dense *= it;
+  counter.main_diag *= it;
+  counter.c_main_diag *= it;
+  counter.sec_diag *= it;
+  counter.c_sec_diag *= it;
 
-  total_op = dense + c_dense + main_diag + c_main_diag + sec_diag + c_sec_diag;
+  counter.total_op = counter.dense + counter.c_dense + counter.main_diag +
+                     counter.c_main_diag + counter.sec_diag +
+                     counter.c_sec_diag;
+  return counter;
 }
 
 void DGM::CpuExecution1(int it) {
@@ -539,257 +544,6 @@ void DGM::CpuExecution1_3(PT *pt, long mem_size) {  // Diagonal Secundária
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-void DGM::CpuExecution2_1(PT *pt, long mem_size) {  // Denso
-  long pos0, pos1, shift;
-
-  shift = 1 << pt->end;
-  mem_size /= 2;
-
-  float complex tmp;
-
-  if (!pt->ctrl_count)  // operador não controlado
-    for (long pos = 0; pos < mem_size; pos++) {
-      pos0 = (pos * 2) - (pos & (shift - 1));
-      pos1 = pos0 | shift;
-
-      tmp = pt->matrix[0] * state[pos0] + pt->matrix[1] * state[pos1];
-      state[pos1] = pt->matrix[2] * state[pos0] + pt->matrix[3] * state[pos1];
-      state[pos0] = tmp;
-    }
-  else {  // operador controlado
-    for (long pos = 0; pos < mem_size; pos++) {
-      pos0 = (pos * 2) - (pos & (shift - 1));
-      pos1 = pos0 | shift;
-      if ((pos0 & pt->ctrl_mask) == pt->ctrl_value) {
-        tmp = pt->matrix[0] * state[pos0] + pt->matrix[1] * state[pos1];
-        state[pos1] = pt->matrix[2] * state[pos0] + pt->matrix[3] * state[pos1];
-        state[pos0] = tmp;
-      }
-    }
-    std::cout << std::endl;
-  }
-}
-
-void DGM::CpuExecution2_2(PT *pt, long mem_size) {  // Diagonal Principal
-  long shift = pt->end;
-
-  if (!pt->ctrl_count)  // operador não controlado
-    for (long pos = 0; pos < mem_size; pos++)
-      state[pos] = pt->matrix[((pos >> shift) & 1) * 3] * state[pos];
-  else  // operador controlado
-    for (long pos = 0; pos < mem_size; pos++)
-      if ((pos & pt->ctrl_mask) == pt->ctrl_value)
-        state[pos] = pt->matrix[((pos >> shift) & 1) * 3] * state[pos];
-}
-
-void DGM::CpuExecution2_3(PT *pt, long mem_size) {  // Diagonal Secundária
-  long pos0, pos1, shift;
-
-  shift = 1 << pt->end;
-  mem_size /= 2;
-
-  float complex tmp;
-
-  if (!pt->ctrl_count)  // operador não controlado
-    for (long pos = 0; pos < mem_size; pos++) {
-      pos0 = (pos * 2) - (pos & (shift - 1));
-      pos1 = pos0 | shift;
-
-      tmp = pt->matrix[1] * state[pos1];
-      state[pos1] = pt->matrix[2] * state[pos0];
-      state[pos0] = tmp;
-    }
-  else  // operador controlado
-    for (long pos = 0; pos < mem_size; pos++) {
-      pos0 = (pos * 2) - (pos & (shift - 1));
-      pos1 = pos0 | shift;
-      if ((pos0 & pt->ctrl_mask) == pt->ctrl_value) {
-        tmp = pt->matrix[1] * state[pos1];
-        state[pos1] = pt->matrix[2] * state[pos0];
-        state[pos0] = tmp;
-      }
-    }
-}
-
-///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-
-void DGM::CpuExecution3_1(PT *pt, long mem_size) {  // Denso
-  long pos0, pos1, shift;
-
-  shift = 1 << pt->end;
-
-  float complex tmp;
-
-  if (!pt->ctrl_count) {  // operador não controlado
-    mem_size /= 2;
-    for (long pos = 0; pos < mem_size; pos++) {
-      pos0 = (pos * 2) - (pos & (shift - 1));
-      pos1 = pos0 | shift;
-
-      tmp = pt->matrix[0] * state[pos0] + pt->matrix[1] * state[pos1];
-      state[pos1] = pt->matrix[2] * state[pos0] + pt->matrix[3] * state[pos1];
-      state[pos0] = tmp;
-    }
-  } else {  // operador controlado
-    std::vector<long> gap, max;
-    long i, c, mask;
-
-    mask = pt->ctrl_mask | shift;
-
-    c = 0;
-    for (i = 0; i < qubits; i++) {
-      if (((mask >> i) & 1) == 0)
-        c++;
-      else if (c) {
-        gap.push_back(1 << (i - c));
-        max.push_back(1 << i);
-        c = 0;
-      }
-    }
-    if (c) {
-      gap.push_back(1 << (i - c));
-      max.push_back(1 << (qubits + 1));
-    } else {
-      gap.push_back(1 << (qubits + 1));
-      max.push_back(1 << (qubits + 2));
-    }
-
-    long pos = 0;
-
-    while (pos < mem_size) {
-      pos0 = pos | pt->ctrl_value;
-      pos1 = pos0 | shift;
-
-      // std::cout << pos0 <<  " " << pos1 << std::endl;
-
-      tmp = pt->matrix[0] * state[pos0] + pt->matrix[1] * state[pos1];
-      state[pos1] = pt->matrix[2] * state[pos0] + pt->matrix[3] * state[pos1];
-      state[pos0] = tmp;
-
-      pos += gap[0];
-      i = 0;
-      while (pos & max[i]) {
-        pos ^= max[i++];
-        pos += gap[i];
-      }
-    }
-    // std::cout << std::endl;
-  }
-}
-
-void DGM::CpuExecution3_2(PT *pt, long mem_size) {  // Diagonal Principal
-  long pos0, shift = pt->end;
-
-  if (!pt->ctrl_count)  // operador não controlado
-    for (long pos = 0; pos < mem_size; pos++)
-      state[pos] = pt->matrix[((pos >> shift) & 1) * 3] * state[pos];
-  else {  // operador controlado
-    std::vector<long> gap, max;
-    long i, c, mask;
-
-    mask = pt->ctrl_mask;
-
-    c = 0;
-    for (i = 0; i < qubits; i++) {
-      if (((mask >> i) & 1) == 0)
-        c++;
-      else if (c) {
-        gap.push_back(1 << (i - c));
-        max.push_back(1 << i);
-        c = 0;
-      }
-    }
-    if (c) {
-      gap.push_back(1 << (i - c));
-      max.push_back(1 << (qubits + 1));
-    } else {
-      gap.push_back(1 << (qubits + 1));
-      max.push_back(1 << (qubits + 2));
-    }
-
-    long pos = 0;
-
-    while (pos < mem_size) {
-      pos0 = pos | pt->ctrl_value;
-
-      // std::cout << pos0 << std::endl;
-      state[pos0] = pt->matrix[((pos0 >> shift) & 1) * 3] * state[pos0];
-
-      pos += gap[0];
-      i = 0;
-      while (pos & max[i]) {
-        pos ^= max[i++];
-        pos += gap[i];
-      }
-    }
-  }
-}
-
-void DGM::CpuExecution3_3(PT *pt, long mem_size) {  // Diagonal Secundária
-  long pos0, pos1, shift;
-
-  shift = 1 << pt->end;
-
-  float complex tmp;
-
-  if (!pt->ctrl_count) {  // operador não controlado
-    mem_size /= 2;
-    for (long pos = 0; pos < mem_size; pos++) {
-      pos0 = (pos * 2) - (pos & (shift - 1));
-      pos1 = pos0 | shift;
-
-      tmp = pt->matrix[1] * state[pos1];
-      state[pos1] = pt->matrix[2] * state[pos0];
-      state[pos0] = tmp;
-    }
-  } else {  // operador controlado
-    std::vector<long> gap, max;
-    long i, c, mask;
-
-    mask = pt->ctrl_mask | shift;
-
-    c = 0;
-    for (i = 0; i < qubits; i++) {
-      if (((mask >> i) & 1) == 0)
-        c++;
-      else if (c) {
-        gap.push_back(1 << (i - c));
-        max.push_back(1 << i);
-        c = 0;
-      }
-    }
-    if (c) {
-      gap.push_back(1 << (i - c));
-      max.push_back(1 << (qubits + 1));
-    } else {
-      gap.push_back(1 << (qubits + 1));
-      max.push_back(1 << (qubits + 2));
-    }
-
-    long pos = 0;
-
-    while (pos < mem_size) {
-      pos0 = pos | pt->ctrl_value;
-      pos1 = pos0 | shift;
-
-      tmp = pt->matrix[1] * state[pos1];
-      state[pos1] = pt->matrix[2] * state[pos0];
-      state[pos0] = tmp;
-
-      pos += gap[0];
-      i = 0;
-      while (pos & max[i]) {
-        pos ^= max[i++];
-        pos += gap[i];
-      }
-    }
-  }
-}
-
-///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-
-///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-
 void report_num_threads(int level) {
 #pragma omp single
   {
@@ -810,7 +564,7 @@ void DGM::HybridExecution(PT **pts) {
   long global_count, global_reg_mask, global_reg_count,
       ext_proj_id;  //, global_pos_count; //atualmente não utilizada
 
-  omp_set_num_threads(n_threads);
+  omp_set_num_threads(cpu_params.n_threads);
 
   int i = 0;
   while (pts[i] != NULL) {
@@ -894,11 +648,12 @@ void DGM::HybridExecution(PT **pts) {
           cpu_i = cpu_start;
 
           while (cpu_start < global_end) {
-            long cpu_count = cpu_coales;
-            long cpu_reg_mask = (cpu_coales) ? (1 << cpu_coales) - 1 : 0;
+            long cpu_count = cpu_params.cpu_coales;
+            long cpu_reg_mask =
+                (cpu_params.cpu_coales) ? (1 << cpu_params.cpu_coales) - 1 : 0;
 
             while (
-                (cpu_count < cpu_region) &&
+                (cpu_count < cpu_params.cpu_region) &&
                 (cpu_i < global_end)) {  // Tem que pertencer a região 'global'
               if (!((cpu_reg_mask >> pts[cpu_i]->end) &
                     1)) {  // Se o qubit do operador estiver fora da região
@@ -907,13 +662,14 @@ void DGM::HybridExecution(PT **pts) {
                 cpu_count++;
               }
 
-              if (cpu_count <=
-                  cpu_region)  // && pts[i]->matrixType() != DIAG_PRI)
-                cpu_reg_mask =
-                    cpu_reg_mask |
-                    (1 << pts[cpu_i]->end);  // Acrescenta o qubit do operador
-                                             // na região se ainda não tiver
-                                             // atingido o limite (region)
+              if (cpu_count <= cpu_params.cpu_region)
+              // && pts[i]->matrixType() != DIAG_PRI)
+              {
+                cpu_reg_mask = cpu_reg_mask | (1 << pts[cpu_i]->end);
+              }
+              // Acrescenta o qubit do operador
+              // na região se ainda não tiver
+              // atingido o limite (region)
 
               cpu_i++;
             }
@@ -927,7 +683,7 @@ void DGM::HybridExecution(PT **pts) {
             }
             cpu_end = cpu_i;
 
-            for (long a = 1; cpu_count < cpu_region; a = a << 1) {
+            for (long a = 1; cpu_count < cpu_params.cpu_region; a = a << 1) {
               if ((a & global_reg_mask) &&
                   (a & ~cpu_reg_mask)) {  // tem que não estar na região da cpu
                                           // e estar na global
@@ -937,13 +693,12 @@ void DGM::HybridExecution(PT **pts) {
             }
 
             long cpu_reg_count =
-                (1 << (global_region - cpu_region)) +
+                (1 << (global_region - cpu_params.cpu_region)) +
                 1;  // Número de regiões 			      -	 +1 para
                     // a condição de parada incluir todos
-            long cpu_pos_count =
-                1 << (cpu_region -
-                      1);  // Número de posições na região 	-	 -1
-                           // porque são duas posições por iteração
+            long cpu_pos_count = 1 << (cpu_params.cpu_region - 1);
+            // Número de posições na região 	-	 -1
+            // porque são duas posições por iteração
 
             long cpu_ext_proj_id = 0;
             long inc_ext_proj_id =
@@ -1055,13 +810,15 @@ void DGM::HybridExecution(PT **pts) {
           ////////////////
 
           ProjectState(state, qubits, global_region, gpu_proj_id,
-                       global_reg_mask, multi_gpu);
+                       global_reg_mask, gpu_params.multi_gpu);
 
-          GpuExecutionWrapper(NULL, &gpu_pts[0], global_region, gpu_coales,
-                              gpu_region, multi_gpu, tam_block, rept, 1);
+          GpuExecutionWrapper(NULL, &gpu_pts[0], global_region,
+                              gpu_params.gpu_coales, gpu_params.gpu_region,
+                              gpu_params.multi_gpu, gpu_params.tam_block,
+                              gpu_params.rept, 1);
 
           GetState(state, qubits, global_region, gpu_proj_id, global_reg_mask,
-                   multi_gpu);
+                   gpu_params.multi_gpu);
 
           for (int c = 0; c < gpu_pts.size() - 1; c++) {
             delete gpu_pts[c];
@@ -1083,15 +840,15 @@ void DGM::HybridExecution(PT **pts) {
 }
 
 void DGM::setCpuStructure(long cpu_region, long cpu_coales) {
-  this->cpu_region = cpu_region;
-  this->cpu_coales = cpu_coales;
+  this->cpu_params.cpu_region = cpu_region;
+  this->cpu_params.cpu_coales = cpu_coales;
 }
 
 void DGM::setGpuStructure(long gpu_region, long gpu_coales, int rept) {
-  this->gpu_region = gpu_region;
-  this->gpu_coales = gpu_coales;
-  this->rept = rept;
-  this->tam_block = 1 << gpu_region / 2 / rept;
+  this->gpu_params.gpu_region = gpu_region;
+  this->gpu_params.gpu_coales = gpu_coales;
+  this->gpu_params.rept = rept;
+  this->gpu_params.tam_block = 1 << gpu_region / 2 / rept;
 }
 
 // Coalescimento

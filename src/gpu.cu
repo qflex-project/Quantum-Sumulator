@@ -278,7 +278,7 @@ void GpuExecution01(float complex* state, PT** pts, int qubits, int qbs_region,
 
   if (state != NULL) {
     for (int d = 0; d < multi_gpu; d++) {
-      cudaMemcpy(state + (mem_desloc * 2) * d, gpu_mem[d], malloc_size,
+      cudaMemcpy(state + mem_desloc * d, gpu_mem[d], malloc_size,
                  cudaMemcpyDeviceToHost);
       error();
       cudaFree(gpu_mem[d]);
