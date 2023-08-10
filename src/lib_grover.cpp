@@ -8,22 +8,14 @@
 #include "dgm.h"
 #include "gates.h"
 
-float Grover(long qubits, long value, int type, int n_threads, int cpu_region,
-             int cpu_coales, int multi_gpu, int gpu_region, int gpu_coales,
-             int tam_block, int rept) {
+int Grover(int qubits, int value, int type, const CPUParams& cpu,
+           const GPUParams& gpu) {
   DGM dgm;
   dgm.qubits = qubits;
   dgm.exec_type = type;
 
-  dgm.n_threads = n_threads;
-  dgm.cpu_region = cpu_region;
-  dgm.cpu_coales = cpu_coales;
-
-  dgm.multi_gpu = multi_gpu;
-  dgm.gpu_region = gpu_region;
-  dgm.gpu_coales = gpu_coales;
-  dgm.tam_block = tam_block;
-  dgm.rept = rept;
+  dgm.cpu_params = cpu;
+  dgm.gpu_params = gpu;
 
   dgm.allocateMemory();
   dgm.setMemoryValue(1 << (qubits - 1));
@@ -49,7 +41,7 @@ float Grover(long qubits, long value, int type, int n_threads, int cpu_region,
   }
 
   int num_of_it = (int)(M_PI / 4.0 * sqrt(1 << (qubits - 1)));
-  long result = 0;
+  int result = 0;
 
   dgm.setFunction(H);
   dgm.setFunction(grover_step, num_of_it, false);
@@ -64,7 +56,7 @@ float Grover(long qubits, long value, int type, int n_threads, int cpu_region,
   return result;
 }
 
-std::string Oracle1(long qubits, long int value) {
+std::string Oracle1(int qubits, int value) {
   std::vector<std::string> t(qubits);
   int ctrl_v;
 

@@ -627,7 +627,7 @@ void DGM::HybridExecution(PT **pts) {
 
     // Define a primeira região (reg_id) da thread
 
-#pragma omp parallel num_threads(n_threads)
+#pragma omp parallel num_threads(cpu_params.n_threads)
     {
       if (omp_get_thread_num() != 0) {  // CPU EXECUTION
         long cpu_proj_id;

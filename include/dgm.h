@@ -46,13 +46,13 @@ class Group {
 };
 
 struct OPSCounter {
-  long total_op = 0;
-  long dense = 0;
-  long main_diag = 0;
-  long sec_diag = 0;
-  long c_dense = 0;
-  long c_main_diag = 0;
-  long c_sec_diag = 0;
+  long total_op;
+  long dense;
+  long main_diag;
+  long sec_diag;
+  long c_dense;
+  long c_main_diag;
+  long c_sec_diag;
 };
 
 struct CPUParams {

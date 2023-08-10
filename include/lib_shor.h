@@ -24,10 +24,7 @@ std::vector<std::string> RQFT(int qubits, int reg, int over, int width);
 std::vector<std::string> CSwapR(int qubits, int ctrl, int reg1, int reg2,
                                 int width);
 std::vector<std::string> SwapOver(int qubits, int reg, int width);
-std::string genRot(int qubits, int reg, long value);
-
-std::vector<std::string> CU(int qubits, int ctrl, int reg1, int reg2, int width,
-                            long a, long N);
+std::string genRot(int qubits, int reg, int value);
 
 std::vector<std::string> CMultMod(int qubits, int ctrl, int reg1, int reg2,
                                   int over, int over_bool, int width, long a,

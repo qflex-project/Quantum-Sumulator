@@ -57,11 +57,20 @@ int main(int argc, char **argv) {
   }
 
   std::cout << "Executing Grover: " << qubits << " qubits" << std::endl;
+  CPUParams cpu;
+  cpu.n_threads = n_threads;
+  cpu.cpu_region = cpu_region;
+  cpu.cpu_coales = cpu_coalesc;
+
+  GPUParams gpu;
+  gpu.multi_gpu = multi_gpu;
+  gpu.gpu_region = gpu_region;
+  gpu.gpu_coales = gpu_coalesc;
+  gpu.tam_block = tam_block;
+  gpu.rept = rept;
 
   gettimeofday(&tvBegin, NULL);
-  float result =
-      Grover(qubits, value, execType, n_threads, cpu_region, cpu_coalesc,
-             multi_gpu, gpu_region, gpu_coalesc, tam_block, rept);
+  float result = Grover(qubits, value, execType, cpu, gpu);
   gettimeofday(&tvEnd, NULL);
   timeval_subtract(&timev, &tvEnd, &tvBegin);
   t = timev.tv_sec + (timev.tv_usec / 1000000.0);

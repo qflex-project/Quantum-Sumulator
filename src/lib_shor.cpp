@@ -19,10 +19,11 @@ int revert_bits(int res, int n) {
 }
 
 int quantum_ipow(int a, int b) {
-  int i;
   int r = 1;
 
-  for (i = 0; i < b; i++) r *= a;
+  for (int i = 0; i < b; i++) {
+    r *= a;
+  }
 
   return r;
 }
@@ -36,23 +37,26 @@ int quantum_gcd(int u, int v) {
     r = v;
     v = u % v;
     u = r;
-    // r = u % v;
-    // u = v;
-    // v = r;
   }
   return u;
 }
 
 void quantum_frac_approx(int *a, int *b, int width) {
-  float f = (float)*a / *b;
+  float f = (float)*a / (float)*b;
   float g = f;
-  int i, num2 = 0, den2 = 1, num1 = 1, den1 = 0, num = 0, den = 0;
+  int i;
+  int num2 = 0;
+  int den2 = 1;
+  int num1 = 1;
+  int den1 = 0;
+  int num = 0;
+  int den = 0;
 
   do {
     i = (int)(g + 0.000005);
 
-    g -= i - 0.000005;
-    g = 1.0 / g;
+    g -= (float)i - 0.000005f;
+    g = 1.0f / g;
 
     if (i * den1 + den2 > 1 << width) break;
 
@@ -76,12 +80,12 @@ void ApplyQFT(int qubits, int type, int multi_gpu, int qbs_region, int coalesc,
               int tam_block, int rept) {
   DGM dgm;
   dgm.exec_type = type;
-  dgm.multi_gpu = multi_gpu;
+  dgm.gpu_params.multi_gpu = multi_gpu;
 
-  dgm.cpu_region = qbs_region;
-  dgm.cpu_coales = coalesc;
-  dgm.tam_block = tam_block;
-  dgm.rept = rept;
+  dgm.cpu_params.cpu_region = qbs_region;
+  dgm.cpu_params.cpu_coales = coalesc;
+  dgm.gpu_params.tam_block = tam_block;
+  dgm.gpu_params.rept = rept;
 
   dgm.qubits = qubits;
   dgm.allocateMemory();
@@ -92,17 +96,18 @@ void ApplyQFT(int qubits, int type, int multi_gpu, int qbs_region, int coalesc,
   dgm.executeFunction(qft);
 }
 
-std::string genRot(int qubits, int reg, long value) {
+std::string genRot(int qubits, int reg, int value) {
   std::vector<std::string> func(qubits, "ID");
   std::string name;
 
   int k = 2;
-  float complex rot, eps;
+  float complex rot;
+  float complex eps;
   eps = M_E;
 
   rot = 1;
   while (value) {
-    if (value & 1) rot *= cpowf(eps, -2 * M_PI * I / pow(2.0, k));
+    if (value & 1) rot *= cpowf(eps, -2.0f * M_PI * I / (float)pow(2.0, k));
     value = value >> 1;
     k++;
   }
@@ -119,42 +124,17 @@ std::string genRot(int qubits, int reg, long value) {
   return "";
 }
 
-std::vector<std::string> CU(int qubits, int ctrl, int reg1, int reg2, int width,
-                            long a, long N) {
-  std::vector<std::string> m, rm, sw, u;
-  /*
-          m = CMultMod(qubits, ctrl, reg1, reg2, width, a, N);
-          rm = CRMultMod(qubits, ctrl, reg1, reg2, width, mul_inv(a,N), N);
-          sw = CSwapR(qubits, ctrl, reg1, reg2+1, width);
-
-
-          u = m;
-          u.insert(u.end(), sw.begin(), sw.end());
-          u.insert(u.end(), rm.begin(), rm.end());
-  */
-  return u;
-}
-
 std::vector<std::string> CMultMod(int qubits, int ctrl, int reg1, int reg2,
                                   int over, int over_bool, int width, long a,
                                   long N) {
-  //        cout << "MULT" << endl;
-
   int ctrl2;
   std::vector<std::string> qft = QFT(qubits, reg2, over, width);
-  //        cout << "MULT" << endl;
 
   std::string HN = Hadamard(qubits, reg2, width);
 
-  //        cout << "MULT" << endl;
-
   std::vector<std::string> rqft = RQFT(qubits, reg2, over, width);
 
-  //        cout << "MULT" << endl;
-
   //////////////////////////////////////////////////////////////
-
-  //        cout << "MULT" << endl;
 
   std::vector<std::string> mult_mod;
   std::vector<std::string> am;
@@ -164,14 +144,9 @@ std::vector<std::string> CMultMod(int qubits, int ctrl, int reg1, int reg2,
   ctrl2 = reg1 + width - 1;
   for (int i = 0; i < width; i++) {
     am = C2AddMod(qubits, ctrl, ctrl2 - i, reg2, over, over_bool, width, a, N);
-    // for (int j = 0; j < am.size(); j++) cout << am[j] << endl;
-    // exit(1);
     mult_mod.insert(mult_mod.end(), am.begin(), am.end());
-
     a = (a * 2) % N;
   }
-
-  //        cout << "MULT" << endl;
 
   mult_mod.insert(mult_mod.end(), rqft.begin(), rqft.end());
 
@@ -401,8 +376,6 @@ std::vector<std::string> SubF(int qubits, int reg, int over, long num,
 }
 
 std::vector<std::string> QFT(int qubits, int reg, int over, int width) {
-  //        cout << "QFT" << endl;
-
   std::string s, name;
   std::vector<std::string> qft;
 
@@ -411,16 +384,11 @@ std::vector<std::string> QFT(int qubits, int reg, int over, int width) {
   for (int i = 1; i <= width + 1; i++) {
     name = "R" + int2str(i);
 
-    //		cout << "QFT " << i << endl;
     c = M_E;
     c = cpowf(c, 2 * M_PI * I / pow(2.0, i));
 
-    //                cout << "QFT " << i << endl;
     g.addGate(name, 1.0, 0.0, 0.0, c);
-    //                cout << "QFT " << i << endl;
   }
-
-  //        cout << "QFT" << endl;
 
   std::vector<std::string> base(qubits, "ID");
 
@@ -449,8 +417,6 @@ std::vector<std::string> QFT(int qubits, int reg, int over, int width) {
     }
     base[i + reg] = "ID";
   }
-
-  //        cout << "QFT" << endl;
 
   return qft;
 }
@@ -613,16 +579,16 @@ std::vector<int> Shor(long N, int type, int n_threads, int cpu_region,
   //////////////////////////////////
   DGM dgm;
   dgm.exec_type = type;
-  dgm.multi_gpu = multi_gpu;
-  dgm.n_threads = n_threads;
+  dgm.gpu_params.multi_gpu = multi_gpu;
+  dgm.cpu_params.n_threads = n_threads;
 
-  dgm.cpu_region = cpu_region;
-  dgm.cpu_coales = cpu_coalesc;
+  dgm.cpu_params.cpu_region = cpu_region;
+  dgm.cpu_params.cpu_coales = cpu_coalesc;
 
-  dgm.gpu_region = gpu_region;
-  dgm.gpu_coales = gpu_coalesc;
-  dgm.tam_block = tam_block;
-  dgm.rept = rept;
+  dgm.gpu_params.gpu_region = gpu_region;
+  dgm.gpu_params.gpu_coales = gpu_coalesc;
+  dgm.gpu_params.tam_block = tam_block;
+  dgm.gpu_params.rept = rept;
   //-----------------------------//
 
   aux = N;
@@ -708,20 +674,13 @@ std::vector<int> Shor(long N, int type, int n_threads, int cpu_region,
 
   int c = revert_bits(res, 2 * n);
 
-  // cout << c << "   " << res << endl;
-
   if (c == 0) {
-    // printf("Fail - Measured Zero.\n");
     return factors;
   }
 
   int q = 1 << (2 * n);
 
-  // printf("Measured %i (%f), ", c, (float)c/q);
-
   quantum_frac_approx(&c, &q, n);
-
-  // printf("fractional approximation is %i/%i.\n", c, q);
 
   int r = q;
   int i = 1;
@@ -747,8 +706,6 @@ std::vector<int> Shor(long N, int type, int n_threads, int cpu_region,
           return;
   }
   */
-
-  // printf("Possible period is %i.\n", q);
 
   i = modular_pow(a, q / 2, N);
   f1 = quantum_gcd(N, i + 1);
@@ -782,6 +739,5 @@ std::vector<int> Shor(long N, int type, int n_threads, int cpu_region,
     }
   }
 
-  // printf("Fail - Try Again.\n");
   return factors;
 }
