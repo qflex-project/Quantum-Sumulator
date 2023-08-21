@@ -6,6 +6,8 @@
 #include <complex.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <string>
+#include <vector>
 #include <sys/time.h>
 
 const int PT_TAM = 1;
@@ -20,6 +22,43 @@ const int CTRL_REG_MASK = 3;
 const int CTRL_REG_VALUE = 4;
 
 enum MatrixType { DENSE, DIAG_PRI, DIAG_SEC };
+
+enum ExecutionType { t_CPU, t_PAR_CPU, t_GPU, t_HYBRID, t_SPEC };
+
+class Group {
+ public:
+  std::vector<std::string> ops;
+  std::vector<long> pos_ops;
+  std::vector<bool> ctrl;
+  std::vector<long> pos_ctrl;
+
+  Group(){};
+  bool isAfected(int pos, int afect);
+};
+
+struct OPSCounter {
+  int total_op;
+  int dense;
+  int main_diag;
+  int sec_diag;
+  int c_dense;
+  int c_main_diag;
+  int c_sec_diag;
+};
+
+struct CPUParams {
+  int n_threads;
+  int cpu_coales;
+  int cpu_region;
+};
+
+struct GPUParams {
+  int multi_gpu;
+  int gpu_coales;
+  int gpu_region;
+  int tam_block;
+  int rept;
+};
 
 void printMem(const float complex *mem, const int qubits);
 void printMemExp(const float complex *mem, const int qubits, const int reg1,

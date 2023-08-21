@@ -19,13 +19,22 @@ int main(int argc, char** argv) {
   qubitsMap[25] = 2045;
   qubitsMap[27] = 2863;
 
-  struct timeval timev, tvBegin, tvEnd;
+  struct timeval timev;
+  struct timeval tvBegin;
+  struct timeval tvEnd;
   float t;
   std::vector<float> amostras;
 
-  int execType = t_CPU, n_threads = 1, cpu_region = 14, cpu_coalesc = 11,
-      multi_gpu = 1, gpu_region = 8, gpu_coalesc = 4, tam_block = 64, rept = 2,
-      seed = 0;
+  int execType = t_CPU;
+  int n_threads = 1;
+  int cpu_region = 14;
+  int cpu_coalesc = 11;
+  int multi_gpu = 1;
+  int gpu_region = 8;
+  int gpu_coalesc = 4;
+  int tam_block = 64;
+  int rept = 2;
+  int seed = 0;
 
   if (argc < 2) {
     std::cout << "You need to define the execution parameters" << std::endl;
@@ -64,10 +73,8 @@ int main(int argc, char** argv) {
 
   if (execType == t_PAR_CPU || execType == t_HYBRID) {
     n_threads = omp_get_max_threads();
-  } else if (execType == t_GPU) {
-    if (argc > 6) {
-      multi_gpu = atoi(argv[6]);
-    }
+  } else if (execType == t_GPU && argc > 6) {
+    multi_gpu = atoi(argv[6]);
   }
 
   std::vector<int> factors;
@@ -80,7 +87,7 @@ int main(int argc, char** argv) {
            multi_gpu, gpu_region, gpu_coalesc, tam_block, rept);
   gettimeofday(&tvEnd, NULL);
   timeval_subtract(&timev, &tvEnd, &tvBegin);
-  t = timev.tv_sec + (timev.tv_usec / 1000000.0);
+  t = ((float) timev.tv_sec) + ( ((float) timev.tv_usec) / 1000000.0f);
 
   long reg_size_per_thread = (1 << (qubits - cpu_region));
   std::cout << "reg_size_per_thread: " << reg_size_per_thread << std::endl;

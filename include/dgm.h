@@ -32,42 +32,7 @@ float complex *GenericExecute(float complex *state,
 inline long LINE(long pos, long shift) { return ((pos >> shift) & 1) * 2; }
 inline long BASE(long pos, long shift) { return pos & (~(1 << shift)); }
 
-enum ExecutionType { t_CPU, t_PAR_CPU, t_GPU, t_HYBRID, t_SPEC };
 
-class Group {
- public:
-  std::vector<std::string> ops;
-  std::vector<long> pos_ops;
-  std::vector<bool> ctrl;
-  std::vector<long> pos_ctrl;
-
-  Group(){};
-  bool isAfected(int pos, int afect);
-};
-
-struct OPSCounter {
-  long total_op;
-  long dense;
-  long main_diag;
-  long sec_diag;
-  long c_dense;
-  long c_main_diag;
-  long c_sec_diag;
-};
-
-struct CPUParams {
-  long n_threads;
-  long cpu_coales;
-  long cpu_region;
-};
-
-struct GPUParams {
-  int multi_gpu;
-  long gpu_coales;
-  long gpu_region;
-  int tam_block;
-  int rept;
-};
 
 class DGM {
  public:
@@ -129,12 +94,7 @@ class DGM {
   void executeFunction(std::vector<std::string> steps, int it = 1);
   float complex *execute(int it);
 
-  void HybridExecution(PT **pts);
 
-  void CpuExecution1(int it);
-  void CpuExecution1_1(PT *pt, long mem_size);
-  void CpuExecution1_2(PT *pt, long mem_size);
-  void CpuExecution1_3(PT *pt, long mem_size);
 };
 
 #endif

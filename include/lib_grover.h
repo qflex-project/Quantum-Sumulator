@@ -4,6 +4,8 @@
 #include <string>
 #include <vector>
 
+#include "dgm.h"
+
 #define complex _Complex
 
 int Grover(int qubits, int value, int type, const CPUParams& cpu,
