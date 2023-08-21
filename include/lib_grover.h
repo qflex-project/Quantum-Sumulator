@@ -4,13 +4,14 @@
 #include <string>
 #include <vector>
 
-using namespace std;
+#include "dgm.h"
 
-float Grover(long qubits, long value, int type, int n_threads, int cpu_region,
-             int cpu_coales, int multi_gpu, int gpu_region, int gpu_coales,
-             int tam_block, int rept);
+#define complex _Complex
 
-string ControledZ(int qubits);
-string Oracle1(long qubits, long int value);
+int Grover(int qubits, int value, int type, const CPUParams& cpu,
+           const GPUParams& gpu);
+
+std::string ControledZ(int qubits);
+std::string Oracle1(int qubits, int value);
 
 #endif

@@ -5,6 +5,7 @@
 
 #include "common.h"
 #include "gpu.h"
+#include "pt.h"
 
 #define M_RANGE 512
 #define M_PREC 10000
@@ -174,7 +175,7 @@ void GpuExecution01(float complex* state, PT** pts, int qubits, int qbs_region,
       cudaSetDevice(d);
       cudaMalloc(&gpu_mem[d], malloc_size);
       error();
-      cudaMemcpy(gpu_mem[d], state + (mem_desloc)*d, malloc_size,
+      cudaMemcpy(gpu_mem[d], state + mem_desloc * d, malloc_size,
                  cudaMemcpyHostToDevice);
       error();
     }
@@ -277,7 +278,7 @@ void GpuExecution01(float complex* state, PT** pts, int qubits, int qbs_region,
 
   if (state != NULL) {
     for (int d = 0; d < multi_gpu; d++) {
-      cudaMemcpy(state + (mem_desloc)*d, gpu_mem[d], malloc_size,
+      cudaMemcpy(state + mem_desloc * d, gpu_mem[d], malloc_size,
                  cudaMemcpyDeviceToHost);
       error();
       cudaFree(gpu_mem[d]);

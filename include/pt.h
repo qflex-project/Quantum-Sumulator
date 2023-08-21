@@ -3,8 +3,6 @@
 
 #include "common.h"
 
-#define complex _Complex
-
 struct PT {
   int qubits;
 

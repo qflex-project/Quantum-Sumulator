@@ -1,50 +1,35 @@
 #include "lib_hadamard.h"
-#include "dgm.h"
-#include "common.h"
-#include "gates.h"
+
+#include <algorithm>
 #include <cmath>
 #include <iostream>
-#include <algorithm>
-#include <vector>
 #include <string>
+#include <vector>
 
-using namespace std;
+#include "common.h"
+#include "dgm.h"
+#include "gates.h"
 
-float HadamardNQubits(long qubits, long num_of_it, int type, int n_threads, int cpu_region, int cpu_coales, int multi_gpu, int gpu_region, int gpu_coales, int tam_block, int rept){
-	DGM dgm;
-	dgm.qubits = qubits;
-	dgm.exec_type = type;
- 
-	dgm.n_threads = n_threads;
-	dgm.cpu_region = cpu_region;
-	dgm.cpu_coales = cpu_coales;
-	
-	dgm.multi_gpu = multi_gpu;
-	dgm.gpu_region = gpu_region;
-	dgm.gpu_coales = gpu_coales;
-	dgm.tam_block = tam_block;
-	dgm.rept = rept;
+int HadamardNQubits(int qubits, int num_of_it, int type, const CPUParams& cpu,
+                    const GPUParams& gpu) {
+  DGM dgm;
+  dgm.qubits = qubits;
+  dgm.exec_type = type;
 
-	dgm.allocateMemory();
-	dgm.setMemoryValue(0);
+  dgm.cpu_params = cpu;
+  dgm.gpu_params = gpu;
 
-	string hadamardN = Hadamard(qubits, 0, qubits);
-	dgm.setFunction(hadamardN, num_of_it);
+  dgm.allocateMemory();
+  dgm.setMemoryValue(0);
 
-	dgm.execute(1);
+  std::string hadamardN = Hadamard(qubits, 0, qubits);
+  dgm.setFunction(hadamardN, num_of_it);
 
-	printMem(dgm.state, 4);
+  dgm.execute(1);
 
-	dgm.freeMemory();
+  printMem(dgm.state, 4);
 
-	return 0;
-}
+  dgm.freeMemory();
 
-
-float HadamardNQubits_PAR_CPU(long qubits, long num_of_it, int n_threads, int cpu_region, int cpu_coales){
-	return HadamardNQubits(qubits, num_of_it, t_PAR_CPU, n_threads, cpu_region, cpu_coales, 1, 1, 1, 1, 1);
-}
-
-float HadamardNQubits_GPU(long qubits, long num_of_it, int multi_gpu, int gpu_region, int gpu_coales, int tam_block, int rept){
-	return HadamardNQubits(qubits, num_of_it, t_GPU, 1, 1, 1, multi_gpu, gpu_region, gpu_coales, tam_block, rept);
+  return 0;
 }
