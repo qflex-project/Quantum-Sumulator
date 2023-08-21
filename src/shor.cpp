@@ -66,7 +66,7 @@ int main(int argc, char** argv) {
     cpu_coalesc = atoi(argv[5]);
   }
 
-  if (execType < t_CPU || execType > t_HYBRID) {
+  if (execType < t_CPU || execType > t_DIST) {
     std::cout << "Invalid execution type: " << execType << std::endl;
     return 0;
   }

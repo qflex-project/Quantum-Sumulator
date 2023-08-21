@@ -9,6 +9,7 @@
 #include "cpu.h"
 #include "gpu.h"
 #include "pcpu.h"
+#include "dcpu.h"
 #include "hybrid.h"
 
 void Tokenize(const std::string &str, std::vector<std::string> &tokens,
@@ -390,10 +391,9 @@ float complex *DGM::execute(int it) {
     case t_HYBRID:
       HybridExecution(state, pts, qubits, cpu_params, gpu_params);
       break;
-    // case t_DIST:
-    //   DistributedExecution(state, pts, qubits, n_threads, cpu_coales,
-    //                        cpu_region, it);
-    //   break;
+    case t_DIST:
+      DCpuExecution1(state, pts, qubits, 2, it);
+      break;
     default:
       std::cout << "Erro exec type" << std::endl;
       exit(1);
@@ -501,6 +501,3 @@ void MPI_coalesc(float complex *state, int qubits, int proj_qubits, long reg_id,
     chunk_sizes[d] = dest_pos - displ[d];
   }
 }
-
-// void DistributedExecution(float complex *state, PT **pts, int qubits,
-//                           long n_threads, int coales, int region, int it) {}

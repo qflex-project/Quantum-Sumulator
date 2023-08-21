@@ -1,10 +1,10 @@
 # Build tools
 
-CXX = g++ -std=c++03
+CXX = mpic++ -std=c++03
 ARCH = sm_70
 NVCC = nvcc -arch=$(ARCH) -std=c++03 #-ccbin $(CXX)
 
-CXX_ARGS = -fopenmp #-Ofast
+CXX_ARGS = -fopenmp -pthread -lmpi#-Ofast
 NVCC_ARGS = -Xcompiler "$(CXX_ARGS)"
  
 BIN=./bin
@@ -17,7 +17,7 @@ OPS_BLOCK=300
 
 # here are all the objects
 GPUOBJS = $(BIN)/gpu.o
-OBJS =  $(BIN)/common.o $(BIN)/pt.o $(BIN)/cpu.o $(BIN)/pcpu.o $(BIN)/hybrid.o $(BIN)/dgm.o $(BIN)/gates.o $(BIN)/lib_hadamard.o $(BIN)/lib_shor.o $(BIN)/lib_grover.o
+OBJS =  $(BIN)/common.o $(BIN)/pt.o $(BIN)/cpu.o $(BIN)/pcpu.o $(BIN)/dcpu.o $(BIN)/hybrid.o $(BIN)/dgm.o $(BIN)/gates.o $(BIN)/lib_hadamard.o $(BIN)/lib_shor.o $(BIN)/lib_grover.o
 
 # make and compile
 all: shor grover hadamard
@@ -49,6 +49,9 @@ $(BIN)/cpu.o: $(SRC)/cpu.cpp
 	$(CXX) -c $< -I$(INCLUDE) -o $@ $(CXX_ARGS)
 
 $(BIN)/pcpu.o: $(SRC)/pcpu.cpp
+	$(CXX) -c $< -I$(INCLUDE) -o $@ $(CXX_ARGS) 
+
+$(BIN)/dcpu.o: $(SRC)/dcpu.cpp
 	$(CXX) -c $< -I$(INCLUDE) -o $@ $(CXX_ARGS) 
 
 $(BIN)/hybrid.o: $(SRC)/hybrid.cpp

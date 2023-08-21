@@ -26,7 +26,7 @@ int main(int argc, char **argv) {
   int qubits = atoi(argv[1]);
 
   int execType = atoi(argv[2]);
-  if (execType < t_CPU || execType > t_HYBRID) {
+  if (execType < t_CPU || execType > t_DIST) {
     std::cout << "Invalid execution type: " << execType << std::endl;
     return 0;
   }
@@ -39,11 +39,6 @@ int main(int argc, char **argv) {
 
   if (argc > 5) {
     cpu_coalesc = atoi(argv[5]);
-  }
-
-  if (execType < t_CPU || execType > t_HYBRID) {
-    std::cout << "Invalid execution type: " << execType << std::endl;
-    return 0;
   }
 
   if (execType == t_PAR_CPU || execType == t_HYBRID) {

@@ -52,7 +52,7 @@ int main(int argc, char **argv) {
     value = atoi(argv[6]);
   }
 
-  if (execType < t_CPU || execType > t_HYBRID) {
+  if (execType < t_CPU || execType > t_DIST) {
     std::cout << "Invalid execution type: " << execType << std::endl;
     return 0;
   }
