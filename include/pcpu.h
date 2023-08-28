@@ -4,9 +4,9 @@
 #include "common.h"
 #include "pt.h"
 
-void PCpuExecution1(float complex *state, PT **pts, int qubits, long n_threads,
-                    int coales, int region, int it);
-void PCpuExecution1_0(float complex *state, PT **pts, int qubits, int start,
-                      int end, int pos_count, int reg_id, int reg_mask);
+void PCpuExecution1(float complex *state, PT **pts, e_size qubits, int n_threads,
+                    e_size coales, e_size region);
+void PCpuExecution1_0(float complex *state, PT **pts, e_size qubits, e_size start,
+                      e_size end, e_size pos_count, e_size reg_id, e_size reg_mask);
 
 #endif

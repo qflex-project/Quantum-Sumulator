@@ -10,6 +10,8 @@
 #include <vector>
 #include <sys/time.h>
 
+typedef long long e_size;
+
 const int PT_TAM = 1;
 const int QB_LIMIT = 30;
 

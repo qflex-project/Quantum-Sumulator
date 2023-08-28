@@ -381,7 +381,7 @@ float complex *DGM::execute(int it) {
       break;
     case t_PAR_CPU:
       PCpuExecution1(state, pts, qubits, cpu_params.n_threads,
-                     cpu_params.cpu_coales, cpu_params.cpu_region, it);
+                     cpu_params.cpu_coales, cpu_params.cpu_region);
       break;
     case t_GPU:
       result = GpuExecutionWrapper(state, pts, qubits, gpu_params.gpu_coales,
@@ -392,7 +392,7 @@ float complex *DGM::execute(int it) {
       HybridExecution(state, pts, qubits, cpu_params, gpu_params);
       break;
     case t_DIST:
-      DCpuExecution1(state, pts, qubits, 2, it);
+      // DCpuExecution1(state, pts, qubits, 2, it);
       break;
     default:
       std::cout << "Erro exec type" << std::endl;
