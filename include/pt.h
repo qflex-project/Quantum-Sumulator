@@ -47,4 +47,9 @@ typedef struct MaskAndRegion {
 MaskNewRegion getMaskAndRegion(PT **pts, e_size coales, e_size region,
                                e_size &i);
 
+// Project Gates
+std::vector<PT *> project_gates(PT **pts, e_size proj_id, e_size reg_mask,
+                                e_size qubits, e_size coales, e_size start,
+                                e_size end);
+
 #endif

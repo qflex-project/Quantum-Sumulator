@@ -17,7 +17,7 @@ OPS_BLOCK=300
 
 # here are all the objects
 GPUOBJS = $(BIN)/gpu.o
-OBJS =  $(BIN)/common.o $(BIN)/pt.o $(BIN)/cpu.o $(BIN)/pcpu.o $(BIN)/hybrid.o $(BIN)/dgm.o $(BIN)/gates.o $(BIN)/lib_hadamard.o $(BIN)/lib_shor.o $(BIN)/lib_grover.o
+OBJS =  $(BIN)/common.o $(BIN)/pt.o $(BIN)/cpu.o $(BIN)/dcpu.o $(BIN)/pcpu.o $(BIN)/hybrid.o $(BIN)/dgm.o $(BIN)/gates.o $(BIN)/lib_hadamard.o $(BIN)/lib_shor.o $(BIN)/lib_grover.o
 
 # make and compile
 all: shor grover hadamard

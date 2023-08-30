@@ -23,17 +23,10 @@ void DCpuExecution1(float complex *state, PT **pts, int qubits, int procs,
 
   MPI_Finalize();
 }
-
-typedef struct CoalescResult {
-  float complex *new_state;
-  long *chunk_sizes;
-  long *displ;
-} CoalescResult;
-
 // Coalescimento
-CoalescResult MPI_coalesc(const float complex *state, int qubits,
-                          int proj_qubits, long reg_id, long reg_mask,
-                          int world_size) {
+CoalescResult projectState(const float complex *state, int qubits,
+                           int proj_qubits, long reg_id, long reg_mask,
+                           int world_size) {
   CoalescResult result;
   int qbs_coales = 0;
   for (int i = 0; i < qubits; i++) {
@@ -72,4 +65,39 @@ CoalescResult MPI_coalesc(const float complex *state, int qubits,
     result.chunk_sizes[d] = dest_pos - result.displ[d];
   }
   return result;
+}
+
+bool collectState(float complex *state, CoalescResult &r, int qubits,
+                  int proj_qubits, long reg_id, long reg_mask, int world_size) {
+  int qbs_coales = 0;
+  for (int i = 0; i < qubits; i++) {
+    if ((reg_mask >> i) & 1)
+      qbs_coales++;
+    else
+      break;
+  }
+
+  int mem_portions = pow(2.0, proj_qubits - qbs_coales);
+  int portion_size = 1 << qbs_coales;
+
+  long inc = ~(reg_mask >> qbs_coales);
+
+  long dev_pos, pos, base = 0;
+  for (int d = 0; d < world_size; d++) {
+    dev_pos = 0;
+    for (int b = mem_portions / world_size * d;
+         b < mem_portions / world_size * (d + 1); b++) {
+      pos = (base << qbs_coales) | reg_id;
+
+      memcpy(state + pos, r.new_state + dev_pos,
+             portion_size * sizeof(float complex));
+
+      base = (base + inc + 1) & ~inc;
+      dev_pos += portion_size;
+    }
+  }
+
+  free(r.new_state);
+
+  return true;
 }

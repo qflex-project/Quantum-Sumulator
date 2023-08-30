@@ -17,21 +17,20 @@ void PCpuExecution1(float complex *state, PT **pts, e_size qubits,
   // limite da região (region definida)
   while (pts[i] != NULL) {
     start = i;
-    MaskNewRegion maskNewRegion = getMaskAndRegion(pts, coales, region, i);
+    MaskNewRegion data = getMaskAndRegion(pts, coales, region, i);
     // Executa até o operador na posiçao 'i' (exclusive) nesta iteração
     end = i;
     // Número de regiões
-    e_size reg_count = (1LL << (qubits - maskNewRegion.region));
+    e_size reg_count = (1LL << (qubits - data.region));
     // Número de posições na região: -1 porque são duas posições por iteração
-    e_size pos_count = 1LL << (maskNewRegion.region - 1LL);
+    e_size pos_count = 1LL << (data.region - 1LL);
     // contador 'global' do número de regiões já computadas
     e_size ext_reg_id = 0LL;
 
     // em reg_ids temos is ids das regiões a serem executadas em paralelo
     for (e_size j = 0LL; j < reg_count; j++) {
       reg_ids[j] = ext_reg_id;
-      ext_reg_id =
-          (ext_reg_id + maskNewRegion.reg_mask + 1LL) & ~maskNewRegion.reg_mask;
+      ext_reg_id = (ext_reg_id + data.reg_mask + 1LL) & ~data.reg_mask;
     }
 
     omp_set_num_threads(n_threads);
@@ -39,7 +38,7 @@ void PCpuExecution1(float complex *state, PT **pts, e_size qubits,
 #pragma omp parallel for schedule(runtime)
     for (size_t j = 0; j < reg_count; j++) {
       PCpuExecution1_0(state, pts, qubits, start, end, pos_count, reg_ids[j],
-                       maskNewRegion.reg_mask);
+                       data.reg_mask);
     }
   }
 }

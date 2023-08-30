@@ -1,6 +1,7 @@
 #include "pt.h"
 
 #include <math.h>
+#include <string.h>
 
 void PT::destructor() {
   if ((mat_size != 1) && !matrix) {
@@ -153,5 +154,65 @@ MaskNewRegion getMaskAndRegion(PT **pts, e_size coales, e_size region,
   MaskNewRegion result;
   result.reg_mask = reg_mask;
   result.region = region;
+  return result;
+}
+
+std::vector<PT *> project_gates(PT **pts, e_size proj_id, e_size reg_mask,
+                                e_size qubits, e_size coales, e_size start,
+                                e_size end) {
+  std::vector<PT *> result;
+
+  e_size map_qb[qubits];
+  memset(map_qb, -1, qubits * sizeof(e_size));
+
+  e_size m = 0;
+  for (e_size i = 0; i < qubits; i++) {
+    if ((1 << i) & reg_mask) {
+      map_qb[i] = m++;
+    }
+  }
+
+  PT *aux;
+  result.clear();
+  for (e_size i = start; i < end; i++) {
+    // verifica se o controle do operador satisfaz a parte global da
+    // região
+    if ((pts[i]->ctrl_mask & proj_id & ~reg_mask) ==
+        (pts[i]->ctrl_value & ~reg_mask)) {
+      aux = new PT();
+
+      aux->qubits = pts[i]->qubits;
+
+      aux->matrix = pts[i]->matrix;
+      aux->mat_size = pts[i]->mat_size;
+      aux->ctrl_mask = pts[i]->ctrl_mask & reg_mask;
+      aux->ctrl_value = pts[i]->ctrl_value & reg_mask;
+
+      aux->end = map_qb[pts[i]->end];
+      aux->start = aux->end - log2((float)aux->mat_size);
+
+      aux->ctrl_count = 0;
+      for (e_size c = coales; c < qubits; c++) {
+        if (aux->ctrl_mask & (1 << c)) {
+          aux->ctrl_count++;
+
+          aux->ctrl_mask &=
+              ~(1 << c);  // retira da mascara o controle do qubit atual (c)
+          aux->ctrl_mask |= (1 << map_qb[c]);  // e coloca o qubit que
+                                               // ele mapeia (map_qb[c])
+
+          if (aux->ctrl_value &
+              (1 << c)) {  // se o valor do controle for zero faz a
+                           // mesma coisa para ctrl_value;
+            aux->ctrl_mask &= ~(1 << c);
+            aux->ctrl_mask |= (1 << map_qb[c]);
+          }
+        }
+      }
+
+      result.push_back(aux);
+    }
+  }
+  result.push_back(NULL);
   return result;
 }

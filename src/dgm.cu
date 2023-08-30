@@ -1,6 +1,6 @@
+#include <math.h>
 #include <mpi.h>
 #include <omp.h>
-#include <math.h>
 #include <unistd.h>
 
 #include <cstdio>
@@ -387,15 +387,49 @@ float complex *DGM::execute(int it) {
   MPI_Comm_size(MPI_COMM_WORLD, &world_size);
 
   if (world_size > 1) {
-    e_size region = qubits - log2((float)world_size);
-    e_size coales = region - 2;
-    e_size i = 0LL;
-    e_size start = 0LL;
-    e_size end = 0LL;
-    while (pts[i] != NULL) {
-      start = i;
-      MaskNewRegion maskNewRegion = getMaskAndRegion(pts, coales, region, i);
-      end = i;
+    if (world_rank == 0) {
+      e_size region = qubits - log2((float)world_size);
+      e_size coales = region - 2;
+      e_size i = 0LL;
+      e_size start = 0LL;
+      e_size end = 0LL;
+
+      while (pts[i] != NULL) {
+        start = i;
+        MaskNewRegion data = getMaskAndRegion(pts, coales, region, i);
+        end = i;
+        printf("here 1\n");
+        // Número de regiões
+        e_size reg_count = (1LL << (qubits - data.region));
+        // Número de posições na região: -1 porque são duas posições por
+        // iteração
+        e_size pos_count = 1LL << (data.region - 1LL);
+        // contador 'global' do número de regiões já computadas
+        e_size ext_reg_id = 0LL;
+
+        // em reg_ids temos is ids das regiões a serem executadas em paralelo
+        for (e_size j = 0LL; j < reg_count; j++) {
+          std::vector<PT *> projected_gates = project_gates(
+              pts, ext_reg_id, data.reg_mask, qubits, coales, start, end);
+          ext_reg_id = (ext_reg_id + data.reg_mask + 1LL) & ~data.reg_mask;
+          printf("here 2\n");
+          CoalescResult r = projectState(state, qubits, region, ext_reg_id,
+                                         data.reg_mask, world_size);
+          printf("here 3\n");
+          // debugging
+          // PCpuExecution1(r.new_state, projected_gates.data(), qubits,
+          //                cpu_params.n_threads, cpu_params.cpu_coales,
+          //                cpu_params.cpu_region);
+          printf("here 4\n");
+          collectState(state, r, qubits, region, ext_reg_id, data.reg_mask,
+                       world_size);
+          printf("here 5\n");
+          for (int c = 0; c < projected_gates.size() - 1; c++) {
+            delete projected_gates[c];
+          }
+          printf("here 6\n");
+        }
+      }
     }
   } else {
     switch (exec_type) {
@@ -419,10 +453,16 @@ float complex *DGM::execute(int it) {
         exit(1);
     }
   }
-
+  if (world_rank == 0) {
+    printf("here 7\n");
+  }
   // not responsibility of this function
-  // MPI_Finalized(&finalized);
-  // if (!finalized) MPI_Finalize();
+  MPI_Finalized(&finalized);
+  if (!finalized) MPI_Finalize();
+
+  if (world_rank == 0) {
+    printf("here 8\n");
+  }
 
   return result;
 }
@@ -481,45 +521,4 @@ void DGM::setGpuStructure(long gpu_region, long gpu_coales, int rept) {
   this->gpu_params.gpu_coales = gpu_coales;
   this->gpu_params.rept = rept;
   this->gpu_params.tam_block = 1 << gpu_region / 2 / rept;
-}
-
-// Coalescimento
-void MPI_coalesc(float complex *state, int qubits, int proj_qubits, long reg_id,
-                 long reg_mask, int world_size) {
-  int qbs_coales = 0;
-  for (int i = 0; i < qubits; i++) {
-    if ((reg_mask >> i) & 1) {
-      qbs_coales++;
-    } else {
-      break;
-    }
-  }
-
-  int mem_portions = pow(2.0, proj_qubits - qbs_coales);
-  int portion_size = 1 << qbs_coales;
-
-  // float malloc_size = (1 << proj_qubits) * sizeof(float complex);
-
-  float complex *new_state =
-      (float complex *)(malloc(sizeof(float complex) * pow(2, qubits)));
-  int *chunk_sizes = (int *)(malloc(sizeof(int) * world_size));
-  int *displ = (int *)(malloc(sizeof(int) * world_size));
-
-  long inc = ~(reg_mask >> qbs_coales);
-
-  long dest_pos, src_pos, base = 0;
-  for (int d = 0; d < world_size; d++) {
-    displ[d] = dest_pos;
-    for (int b = mem_portions / world_size * d;
-         b < mem_portions / world_size * (d + 1); b++) {
-      src_pos = (base << qbs_coales) | reg_id;
-
-      memcpy(new_state + dest_pos, state + src_pos,
-             portion_size * sizeof(float complex));
-
-      base = (base + inc + 1) & ~inc;
-      dest_pos += portion_size;
-    }
-    chunk_sizes[d] = dest_pos - displ[d];
-  }
 }
