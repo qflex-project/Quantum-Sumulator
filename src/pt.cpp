@@ -107,3 +107,51 @@ bool decreasing(const PT *pt1, const PT *pt2) {
   else
     return pt1->affected;
 }
+
+MaskNewRegion getMaskAndRegion(PT **pts, e_size coales, e_size region,
+                               e_size &i) {
+  e_size count = coales;
+  e_size reg_mask = coales ? (1LL << coales) - 1LL : 0LL;
+  // Repete enquanto o número de qubits da região não
+  // atingir o limite (region) e houver operadores
+  while (count < region && pts[i] != NULL) {
+    // Se o qubit do operador estiver fora da região (reg_mask),
+    // incrementa o contador de qubits da região
+    if (!((reg_mask >> pts[i]->end) & 1LL)) {
+      count++;
+    }
+    // Acrescenta o qubit do operador na região se
+    // ainda não tiver atingido o limite (region)
+    if (count <= region) {
+      reg_mask = reg_mask | (1LL << pts[i]->end);
+    }
+    i++;
+  }
+  // Segue acerscentado até encontrar um operador que não esteja dentro da
+  // região
+  while (pts[i] != NULL) {
+    if ((reg_mask >> pts[i]->end) & 1LL) {
+      i++;
+    } else {
+      break;
+    }
+  }
+  // Se o número de qubits na região (count) não tiver atingido o limite
+  // (region), acrescenta os ultimos qubits (final da mascara) à região até
+  // completar
+  e_size a = 1LL;
+  while (count < region) {
+    if (a & ~reg_mask) {
+      reg_mask = reg_mask | a;
+      count++;
+    }
+    a = a << 1LL;
+  }
+
+  if (count < region) region = count;
+
+  MaskNewRegion result;
+  result.reg_mask = reg_mask;
+  result.region = region;
+  return result;
+}

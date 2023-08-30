@@ -39,4 +39,12 @@ struct PT {
 bool increasing(const PT *pt1, const PT *pt2);
 bool decreasing(const PT *pt1, const PT *pt2);
 
+typedef struct MaskAndRegion {
+  e_size reg_mask;
+  e_size region;
+} MaskNewRegion;
+
+MaskNewRegion getMaskAndRegion(PT **pts, e_size coales, e_size region,
+                               e_size &i);
+
 #endif

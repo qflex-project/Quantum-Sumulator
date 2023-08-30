@@ -1,10 +1,10 @@
 # Build tools
 
-CXX = g++ -std=c++03
+CXX = mpic++
 ARCH = sm_70
-NVCC = nvcc -arch=$(ARCH) -std=c++03 #-ccbin $(CXX)
+NVCC = nvcc -arch=$(ARCH) -std=c++03 -ccbin $(CXX)
 
-CXX_ARGS = -fopenmp #-Ofast
+CXX_ARGS = -fopenmp -std=c++03
 NVCC_ARGS = -Xcompiler "$(CXX_ARGS)"
  
 BIN=./bin
@@ -25,6 +25,10 @@ all: shor grover hadamard
 # debug
 debug: CXX_ARGS += -DDEBUG -g -O0
 debug: all
+
+# release
+release: CXX_ARGS += -O3
+release: all
 
 # executables
 

@@ -1,16 +1,18 @@
+#include <mpi.h>
 #include <omp.h>
+#include <math.h>
 #include <unistd.h>
 
 #include <cstdio>
 #include <iostream>
 #include <iterator>
 
-#include "dgm.h"
 #include "cpu.h"
-#include "gpu.h"
-#include "pcpu.h"
 #include "dcpu.h"
+#include "dgm.h"
+#include "gpu.h"
 #include "hybrid.h"
+#include "pcpu.h"
 
 void Tokenize(const std::string &str, std::vector<std::string> &tokens,
               const std::string &delimiters = ",") {
@@ -373,31 +375,54 @@ void DGM::executeFunction(std::string function, int it) {
 }
 
 float complex *DGM::execute(int it) {
+  int initialized, finalized;
+
+  MPI_Initialized(&initialized);
+  if (!initialized) MPI_Init(NULL, NULL);
   float complex *result = state;
 
-  switch (exec_type) {
-    case t_CPU:
-      CpuExecution1(state, pts, qubits, it);
-      break;
-    case t_PAR_CPU:
-      PCpuExecution1(state, pts, qubits, cpu_params.n_threads,
-                     cpu_params.cpu_coales, cpu_params.cpu_region);
-      break;
-    case t_GPU:
-      result = GpuExecutionWrapper(state, pts, qubits, gpu_params.gpu_coales,
-                                   gpu_params.gpu_region, gpu_params.multi_gpu,
-                                   gpu_params.tam_block, gpu_params.rept, it);
-      break;
-    case t_HYBRID:
-      HybridExecution(state, pts, qubits, cpu_params, gpu_params);
-      break;
-    case t_DIST:
-      // DCpuExecution1(state, pts, qubits, 2, it);
-      break;
-    default:
-      std::cout << "Erro exec type" << std::endl;
-      exit(1);
+  int world_rank;
+  MPI_Comm_rank(MPI_COMM_WORLD, &world_rank);
+  int world_size;
+  MPI_Comm_size(MPI_COMM_WORLD, &world_size);
+
+  if (world_size > 1) {
+    e_size region = qubits - log2((float)world_size);
+    e_size coales = region - 2;
+    e_size i = 0LL;
+    e_size start = 0LL;
+    e_size end = 0LL;
+    while (pts[i] != NULL) {
+      start = i;
+      MaskNewRegion maskNewRegion = getMaskAndRegion(pts, coales, region, i);
+      end = i;
+    }
+  } else {
+    switch (exec_type) {
+      case t_CPU:
+        CpuExecution1(state, pts, qubits, it);
+        break;
+      case t_PAR_CPU:
+        PCpuExecution1(state, pts, qubits, cpu_params.n_threads,
+                       cpu_params.cpu_coales, cpu_params.cpu_region);
+        break;
+      case t_GPU:
+        result = GpuExecutionWrapper(
+            state, pts, qubits, gpu_params.gpu_coales, gpu_params.gpu_region,
+            gpu_params.multi_gpu, gpu_params.tam_block, gpu_params.rept, it);
+        break;
+      case t_HYBRID:
+        HybridExecution(state, pts, qubits, cpu_params, gpu_params);
+        break;
+      default:
+        std::cout << "Erro exec type" << std::endl;
+        exit(1);
+    }
   }
+
+  // not responsibility of this function
+  // MPI_Finalized(&finalized);
+  // if (!finalized) MPI_Finalize();
 
   return result;
 }
@@ -436,8 +461,6 @@ OPSCounter DGM::CountOps(int it) {
   return counter;
 }
 
-
-
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 void report_num_threads(int level) {
@@ -447,7 +470,6 @@ void report_num_threads(int level) {
            omp_get_num_threads());
   }
 }
-
 
 void DGM::setCpuStructure(long cpu_region, long cpu_coales) {
   this->cpu_params.cpu_region = cpu_region;
@@ -476,7 +498,7 @@ void MPI_coalesc(float complex *state, int qubits, int proj_qubits, long reg_id,
   int mem_portions = pow(2.0, proj_qubits - qbs_coales);
   int portion_size = 1 << qbs_coales;
 
-  float malloc_size = (1 << proj_qubits) * sizeof(float complex);
+  // float malloc_size = (1 << proj_qubits) * sizeof(float complex);
 
   float complex *new_state =
       (float complex *)(malloc(sizeof(float complex) * pow(2, qubits)));

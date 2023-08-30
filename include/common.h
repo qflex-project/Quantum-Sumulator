@@ -25,7 +25,7 @@ const int CTRL_REG_VALUE = 4;
 
 enum MatrixType { DENSE, DIAG_PRI, DIAG_SEC };
 
-enum ExecutionType { t_CPU, t_PAR_CPU, t_GPU, t_HYBRID, t_DIST, t_SPEC };
+enum ExecutionType { t_CPU, t_PAR_CPU, t_GPU, t_HYBRID, t_SPEC };
 
 class Group {
  public:
