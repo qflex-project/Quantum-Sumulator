@@ -376,61 +376,131 @@ void DGM::executeFunction(std::string function, int it) {
 
 float complex *DGM::execute(int it) {
   int initialized, finalized;
+  float complex *result;
 
   MPI_Initialized(&initialized);
   if (!initialized) MPI_Init(NULL, NULL);
-  float complex *result = state;
 
   int world_rank;
   MPI_Comm_rank(MPI_COMM_WORLD, &world_rank);
   int world_size;
   MPI_Comm_size(MPI_COMM_WORLD, &world_size);
 
+
   if (world_size > 1) {
-    if (world_rank == 0) {
-      e_size region = qubits - log2((float)world_size);
-      e_size coales = region - 2;
-      e_size i = 0LL;
-      e_size start = 0LL;
-      e_size end = 0LL;
+    // printf("hello from %d: \n", world_rank);
+    e_size decrement = log2((float)world_size);
+    e_size global_region = qubits - decrement;
+    e_size global_coales = 0;  // pensar em como inicializar esse valor
 
-      while (pts[i] != NULL) {
-        start = i;
-        MaskNewRegion data = getMaskAndRegion(pts, coales, region, i);
-        end = i;
-        printf("here 1\n");
-        // Número de regiões
-        e_size reg_count = (1LL << (qubits - data.region));
-        // Número de posições na região: -1 porque são duas posições por
-        // iteração
-        e_size pos_count = 1LL << (data.region - 1LL);
-        // contador 'global' do número de regiões já computadas
-        e_size ext_reg_id = 0LL;
+    // reduzindo esses valores devido as projeções
+    cpu_params.cpu_coales -= decrement;
+    cpu_params.cpu_region -= decrement;
 
-        // em reg_ids temos is ids das regiões a serem executadas em paralelo
-        for (e_size j = 0LL; j < reg_count; j++) {
-          std::vector<PT *> projected_gates = project_gates(
-              pts, ext_reg_id, data.reg_mask, qubits, coales, start, end);
-          ext_reg_id = (ext_reg_id + data.reg_mask + 1LL) & ~data.reg_mask;
-          printf("here 2\n");
-          CoalescResult r = projectState(state, qubits, region, ext_reg_id,
+    e_size i = 0LL;
+    e_size start = 0LL;
+    e_size end = 0LL;
+
+    while (pts[i] != NULL) {
+      start = i;
+      MaskNewRegion data =
+          getMaskAndRegion(pts, global_coales, global_region, i);
+      end = i;
+      // printf("current start and end %d %d: \n", start, end);
+      // Número de regiões
+      e_size reg_count = (1LL << (qubits - data.region));
+      // Número de posições na região: -1 porque são duas posições por
+      // iteração
+      e_size pos_count = 1LL << (data.region - 1LL);
+      // contador 'global' do número de regiões já computadas
+      e_size ext_reg_id = 0LL;
+
+      // em reg_ids temos is ids das regiões a serem executadas em paralelo
+      for (e_size j = 0LL; j < reg_count; j++) {
+        std::vector<PT *> projected_gates =
+            project_gates(pts, ext_reg_id, data.reg_mask, qubits,
+                          global_coales, start, end);
+        // printf("entering execution branch\n");
+        if (world_rank == 0) {
+          printf("root %d: \n", world_rank);
+          CoalescResult r = projectState(state, qubits, data.region, ext_reg_id,
                                          data.reg_mask, world_size);
-          printf("here 3\n");
-          // debugging
-          // PCpuExecution1(r.new_state, projected_gates.data(), qubits,
-          //                cpu_params.n_threads, cpu_params.cpu_coales,
-          //                cpu_params.cpu_region);
-          printf("here 4\n");
-          collectState(state, r, qubits, region, ext_reg_id, data.reg_mask,
-                       world_size);
-          printf("here 5\n");
-          for (int c = 0; c < projected_gates.size() - 1; c++) {
-            delete projected_gates[c];
+
+          printf("%d chunks: ", world_rank);
+          for (size_t i = 0; i < world_size; i++) {
+            printf("%d, ", r.chunk_sizes[i]);
           }
-          printf("here 6\n");
+          printf("\n");
+
+          printf("%d displ: ", world_rank);
+          for (size_t i = 0; i < world_size; i++) {
+            printf("%d, ", r.displ[i]);
+          }
+          printf("\n");
+
+          // send chunk and displ data to all process
+          MPI_Bcast(r.chunk_sizes, world_size, MPI_INT, 0, MPI_COMM_WORLD );
+          MPI_Bcast(r.displ, world_size, MPI_INT, 0, MPI_COMM_WORLD );
+
+          result = (float complex *)(malloc(sizeof(float complex) * r.chunk_sizes[0]));
+          MPI_Scatterv(r.new_state, r.chunk_sizes, r.displ, MPI_C_FLOAT_COMPLEX, result,
+                       r.chunk_sizes[0], MPI_C_FLOAT_COMPLEX, 0, MPI_COMM_WORLD);
+          // necessário 'espalhar' os dados nos processos
+          // MPI_Scatter / MPI_Scatterv
+
+          // debugging
+
+          // switch (exec_type) {
+          //   case t_CPU:
+          //     CpuExecution1(r.new_state, projected_gates.data(), data.region,
+          //                   it);
+          //     break;
+          //   case t_PAR_CPU:
+          //     PCpuExecution1(r.new_state, projected_gates.data(), data.region,
+          //                    cpu_params.n_threads, cpu_params.cpu_coales,
+          //                    cpu_params.cpu_region);
+          //     break;
+          // }
+          // debugging
+          // collectState(state, r, qubits, data.region, ext_reg_id, data.reg_mask,
+          //              world_size);
+          // for (int c = 0; c < projected_gates.size() - 1; c++) {
+          //   delete projected_gates[c];
+          // }
+          // ext_reg_id = (ext_reg_id + data.reg_mask + 1LL) & ~data.reg_mask;
+
+          printf("%d result: ", world_rank);
+          for (size_t i = 0; i < r.chunk_sizes[0]; i++) {
+            printf("%d, ", result[i]);
+          }
+          printf("\n");
+          free(result);
+        } else {
+          // printf("slave %d: \n", world_rank);
+          int *chunk_sizes = (int *)(malloc(sizeof(int) * world_size));
+          int *displ = (int *)(malloc(sizeof(int) * world_size));
+          // send chunk and displ data to all process
+          MPI_Bcast(chunk_sizes, world_size, MPI_INT, 0, MPI_COMM_WORLD );
+          MPI_Bcast(displ, world_size, MPI_INT, 0, MPI_COMM_WORLD );
+          int current_recv_size = chunk_sizes[world_rank];
+          result = (float complex *)(malloc(sizeof(float complex) * current_recv_size));
+          MPI_Scatterv(NULL, chunk_sizes, displ, MPI_C_FLOAT_COMPLEX, result,
+                      current_recv_size, MPI_C_FLOAT_COMPLEX, 0, MPI_COMM_WORLD);
+
+          // printf("%d result: ", world_rank);
+          // for (size_t i = 0; i < current_recv_size; i++) {
+          //   printf("%d, ", result[i]);
+          // }
+          // printf("\n");
+          
+
+          
+          free(chunk_sizes);
+          free(displ);
+          free(result);
         }
       }
-    }
+    } 
   } else {
     switch (exec_type) {
       case t_CPU:
@@ -453,17 +523,11 @@ float complex *DGM::execute(int it) {
         exit(1);
     }
   }
-  if (world_rank == 0) {
-    printf("here 7\n");
-  }
+
+  MPI_Barrier(MPI_COMM_WORLD);
   // not responsibility of this function
   MPI_Finalized(&finalized);
   if (!finalized) MPI_Finalize();
-
-  if (world_rank == 0) {
-    printf("here 8\n");
-  }
-
   return result;
 }
 
