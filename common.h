@@ -1,12 +1,11 @@
 #ifndef _COMMON_H_
 #define _COMMON_H_
 
+#include <cmath>
 #include <stdio.h>
 #include <stdlib.h>
-#include <complex.h>
 #include <sys/time.h>
-
-#define complex _Complex
+#include <complex>
 
 #define CHUNCK_SIZE 262144
 
@@ -30,6 +29,13 @@
 #define MAT_SIZE 0
 #define MAT_END 0
 
+static const std::complex <float> COMPLEX_ZERO = std::complex <float>(0.0, 0.0);
+static const std::complex <float> COMPLEX_ONE = std::complex <float>(1.0, 0.0);
+static const std::complex <float> COMPLEX_I = std::complex <float>(0.0, 1.0); // Imaginary unit
+
+static const float M_PI = std::acos(-1.0); // Calculate Pi
+static const float M_E = std::exp(1.0); // Calculate Euler's number (e)
+
 enum {
 	DENSE,
 	DIAG_PRI,
@@ -38,7 +44,7 @@ enum {
 
 struct PT{
 	int qubits;
-	float complex *matrix;
+	std::complex <float> *matrix;
 	int mat_size;
 	int start, end;
 	bool affected;
@@ -60,9 +66,9 @@ struct PT{
 
 };
 
-void printMem(float complex* mem, int qubits);
-void printMemExp(float complex* mem, int qubits, int reg1, int reg2, long n);
-void printMemCheckExp(float complex* mem, int qubits, long n, long a, long N);
+void printMem(std::complex <float>* mem, int qubits);
+void printMemExp(std::complex <float>* mem, int qubits, int reg1, int reg2, long n);
+void printMemCheckExp(std::complex <float>* mem, int qubits, long n, long a, long N);
 
 long modular_pow(long base, long exponent, long modulus);
 
@@ -71,7 +77,7 @@ bool decreasing(const PT *pt1, const PT *pt2);
 
 void swap_value(int *v1, int* v2);
 void swap_ptr(float **ptr1, float **ptr2);
-void swap_ptr(float complex **ptr1, float complex **ptr2);
+void swap_ptr(std::complex <float> **ptr1, std::complex <float> **ptr2);
 
 int timeval_subtract(struct timeval *result, struct timeval *t2, struct timeval *t1);
 

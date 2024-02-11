@@ -6,9 +6,10 @@
 #include <map>
 #include <string>
 #include <complex.h>
-#include <math.h>
 
-#define complex _Complex
+#define _USE_MATH_DEFINES
+
+#define ccomplex _Complex
 
 using namespace std;
 
@@ -26,13 +27,14 @@ string concatena(vector <string> vec, int size, bool rev = false);
 
 class Gates{
 public:
-	static map <string, float complex*> list;
+	static map <string, std::complex <float>*> list;
 	Gates();
 	~Gates();
 	void init();
-	float complex* getMatrix(string gateName);
-	bool addGate(string name, float complex* matrix);
-	bool addGate(string name, float complex a0, float complex a1, float complex a2, float complex a3);
+	std::complex <float>* getMatrix(string gateName);
+	bool addGate(string name, std::complex <float>* matrix);
+	bool addGate(string name, std::complex <float> a0, std::complex <float> a1, std::complex <float> a2, std::complex <float> a3);
+	void printGates();
 };
 
 #endif

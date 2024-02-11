@@ -1,5 +1,4 @@
 #include "common.h"
-#include <math.h>
 
 float round_precision = 0.000000001;
 
@@ -22,8 +21,8 @@ long PT::ctrlAffect(long qubit){
 }
 
 long PT::matrixType(){
-	if ((matrix[1] == 0.0) && (matrix[2] == 0.0)) return DIAG_PRI;
-	else if ((matrix[0] == 0.0) && (matrix[3] == 0.0)) return DIAG_SEC;
+	if ((matrix[1] == COMPLEX_ZERO) && (matrix[2] == COMPLEX_ZERO)) return DIAG_PRI;
+	else if ((matrix[0] == COMPLEX_ZERO) && (matrix[3] == COMPLEX_ZERO)) return DIAG_SEC;
 	
 	return DENSE;
 }
@@ -132,32 +131,32 @@ void PT::print(){
 void PT::printMatrix(){
 	for (int i = 0; i < mat_size; i++){
 		for (int j = 0; j < mat_size; j++)
-			printf("%d: %.4f, %.4f  \t", i*mat_size+j,crealf(matrix[i*mat_size+j]), cimagf(matrix[i*mat_size+j]));
+			printf("%d: %.4f, %.4f  \t", i*mat_size+j, matrix[i*mat_size+j].real(), matrix[i*mat_size+j].imag());
 		printf("\n");
 	}
 
 }
 
-void printMem(float complex* mem, int qubits){
+void printMem(std::complex <float>* mem, int qubits){
 	long size = pow(2, qubits);
 	float range = 1.0/pow(2,21);
 
 	float real, imag, f;
 	for (long i = 0; i < size; i++){
 		real = imag = 0;
-		f = fabs(crealf(mem[i]));		
+		f = fabs(mem[i].real());
 		//if (f > round_precision)
-			real = crealf(mem[i]);
+			real = mem[i].real();
 
-		f = fabs(cimagf(mem[i]));
+		f = fabs(mem[i].imag());
 		//if (f > round_precision)
-			imag = cimagf(mem[i]);
+			imag = mem[i].imag();
 		//if (real != 0 || imag != 0)
 			printf("%ld:\t%.6f %.6f\n", i, real, imag);
 	}
 }
 
-void printMemExp(float complex* mem, int qubits, int reg1, int reg2, long n){
+void printMemExp(std::complex <float>* mem, int qubits, int reg1, int reg2, long n){
 	long size = pow(2, qubits);
 	float range = 1.0/pow(2,21);
 
@@ -167,25 +166,24 @@ void printMemExp(float complex* mem, int qubits, int reg1, int reg2, long n){
 	long last_X = 0;
 	for (long i = 0; i < size; i++){
 		real = imag = 0;
-		f = fabs(crealf(mem[i]));
+		f = fabs(mem[i].real());
 	   	if (f > round_precision)
-			real = crealf(mem[i]);
+			real = mem[i].real();
 
-		f = fabs(cimagf(mem[i]));
+		f = fabs(mem[i].imag());
 		if (f > round_precision)
-			imag = cimagf(mem[i]);
+			imag = mem[i].imag();
 
 		if ((imag != 0) || (real != 0)){
 			long X = (i>>(qubits-reg1-n))&mask;
 			long Exp = (i>>(qubits-reg2-n))&mask;
-			printf("%ld\t>>  X: %ld\tExp: %ld\tDif: %ld\t\t\tV: %f %f\n", i, X, Exp, X-last_X, crealf(mem[i]), cimagf(mem[i]));
+			printf("%ld\t>>  X: %ld\tExp: %ld\tDif: %ld\t\t\tV: %f %f\n", i, X, Exp, X-last_X, mem[i].real(), mem[i].imag());
 			last_X = X;
-			//printf("%ld >>> X: %ld\tB: %ld\tOver: b%ld %ld\tV: %f %f\n", i, (i>>(n+2))&mask, (i>>1)&(mask), (i&1), ((i>>(n+1))&1), crealf(mem[i]), cimagf(mem[i]));
 		}
 	}
 }
 
-void printMemCheckExp(float complex* mem, int qubits, long width, long a, long N){
+void printMemCheckExp(std::complex <float>* mem, int qubits, long width, long a, long N){
 	long size = pow(2, qubits);
 	float range = 1.0/pow(2,21);
 
@@ -195,13 +193,13 @@ void printMemCheckExp(float complex* mem, int qubits, long width, long a, long N
 	long last_X = 0;
 	for (long i = 0; i < size; i++){
 		real = imag = 0;
-		f = fabs(crealf(mem[i]));
+		f = fabs(mem[i].real());
 	   	if (f > round_precision)
-			real = crealf(mem[i]);
+			real = mem[i].real();
 
-		f = fabs(cimagf(mem[i]));
+		f = fabs(mem[i].imag());
 		if (f > round_precision)
-			imag = cimagf(mem[i]);
+			imag = mem[i].imag();
 
 		if ((imag != 0) || (real != 0)){
 			long X = (i>>(2*width+2));
@@ -214,8 +212,6 @@ void printMemCheckExp(float complex* mem, int qubits, long width, long a, long N
 			last_X = X;
 			if (modular_pow(a,X,N) != Exp) printf("Errado\n");
 			else printf("\n");
-
-			//printf("%ld >>> X: %ld\tB: %ld\tOver: b%ld %ld\tV: %f %f\n", i, (i>>(n+2))&mask, (i>>1)&(mask), (i&1), ((i>>(n+1))&1), crealf(mem[i]), cimagf(mem[i]));
 		}
 	}
 }
@@ -247,8 +243,8 @@ void swap_ptr(float **ptr1, float **ptr2){
 	*ptr2 = aux;
 }
 
-void swap_ptr(float complex **ptr1, float complex **ptr2){
-	float complex *aux = *ptr1;
+void swap_ptr(std::complex <float> **ptr1, std::complex <float> **ptr2){
+	std::complex <float> *aux = *ptr1;
 	*ptr1 = *ptr2;
 	*ptr2 = aux;
 }

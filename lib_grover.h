@@ -6,7 +6,7 @@
 
 using namespace std;
 
-#define complex _Complex
+#define ccomplex _Complex
 
 float Grover(long qubits, long value, int type, int n_threads, int cpu_region, int cpu_coales, int multi_gpu, int gpu_region, int gpu_coales, int tam_block, int rept);
 

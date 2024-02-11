@@ -1,7 +1,11 @@
 #ifndef _LIBGENERAL_H_
 #define _LIBGENERAL_H_
 
-#define complex _Complex
+#include <string>
+
+#define ccomplex _Complex
+
+float ExecuteFunction(std::string function, long qubits, long num_of_it, int type, int n_threads, int cpu_region, int cpu_coales, int multi_gpu, int gpu_region, int gpu_coales, int tam_block, int rept);
 
 float HadamardNQubits(long qubits, long num_of_it, int type, int n_threads, int cpu_region, int cpu_coales, int multi_gpu, int gpu_region, int gpu_coales, int tam_block, int rept);
 

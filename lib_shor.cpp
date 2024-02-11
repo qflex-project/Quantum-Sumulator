@@ -2,7 +2,6 @@
 #include "dgm.h"
 #include "common.h"
 #include "gates.h"
-#include <cmath>
 #include <iostream>
 #include <algorithm>
 
@@ -105,17 +104,19 @@ string genRot(int qubits, int reg, long value){
 	string name;
 
 	int k = 2;
-	float complex rot, eps;
-	eps = M_E;
+	std::complex <float> rot = 1;
 
-	rot = 1;
-	while (value){
-		if (value&1) rot *= cpowf(eps, -2*M_PI*I/pow(2.0, k));
-		value = value >> 1;
+	long aux = value;
+	while (aux){
+		if (aux&1) {
+			float exponent = -2 * M_PI / pow(2, k);
+			rot *= exp(std::complex <float>(0, exponent));
+		}
+		aux = aux >> 1;
 		k++;
 	}
 
-	if (rot != 1){
+	if (rot != COMPLEX_ONE){
 		Gates g;
 		name = "Rot_" + int2str(value);
 		g.addGate(name, 1.0, 0.0, 0.0, rot);
@@ -303,19 +304,19 @@ string AddF(int qubits, int reg, int over, long num, int width){
 
 vector <string> AddF(int qubits, int reg, int over, long num, int width, bool controlled){
 	int size = width+1;
-	vector <float complex> rot (size, 1);
-	float complex  c;
+	vector <std::complex <float>> rot (size, 1);
+	std::complex <float> c, d;
 
 	Gates g;
 
 	long aux = num;
 
-	float complex eps = M_E;
-
 	for (int i = 0; i < size; i++){
 		if (aux&1)
-			for (int j = i; j < size; j++)
-				rot[j] *= cpowf(eps, 2*M_PI*I/pow(2.0, j-i+1));
+			for (int j = i; j < size; j++){
+				float exponent = 2 * M_PI / pow(2, j-i+1);
+				rot[j] *= exp(std::complex <float>(0, exponent));
+			}
 		aux = aux >> 1;
 	}
 
@@ -363,18 +364,19 @@ string SubF(int qubits, int reg, int over, long num, int width){
 
 vector <string> SubF(int qubits, int reg, int over, long num, int width, bool controlled){
 	long size = width+1;
-	vector <float complex> rot (size, 1);
-	float complex  c;
+	vector <std::complex <float>> rot (size, 1);
+	std::complex <float> c, d;
 
 	Gates g;
 
 	long aux = num;
 
-	float complex eps = M_E;
 	for (int i = 0; i < size; i++){
 		if (aux&1)
-			for (int j = i; j < size; j++)
-				rot[j] *= cpowf(eps, -2*M_PI*I/pow(2.0, j-i+1));
+			for (int j = i; j < size; j++){
+				float exponent = 2 * M_PI / pow(2, j-i+1);
+				rot[j] *= exp(std::complex <float>(0, exponent));
+			}
 		aux = aux >> 1;
 	}
 
@@ -408,21 +410,14 @@ vector <string> QFT(int qubits, int reg, int over, int width){
 	vector <string> qft;
 
 	Gates g;
-	float complex c;
 	for (int i = 1; i <= width+1; i++){
-                name = "R" + int2str(i);
+		float exponent = 2 * M_PI / pow(2, i);
+		std::complex <float> phaseShift = exp(std::complex <float>(0, exponent));
 
-//		cout << "QFT " << i << endl;
-		c = M_E;
-		c = cpowf(c, 2*M_PI*I/pow(2.0, i));
+		name = "R" + to_string(i);
 
-//                cout << "QFT " << i << endl;
-		g.addGate(name, 1.0, 0.0, 0.0, c);
-//                cout << "QFT " << i << endl;
+		g.addGate(name, 1.0, 0.0, 0.0, phaseShift);
 	}
-
-//        cout << "QFT" << endl;
-
 
 	vector <string> base (qubits, "ID");
 
@@ -463,11 +458,11 @@ vector <string> QFT2(int qubits, int reg, int width){
 	vector <string> qft;
 
 	Gates g;
-	float complex c;
 	for (int i = 1; i <= width+1; i++){
-		c = M_E;
-		c = cpowf(c, 2*M_PI*I/pow(2.0, i));
-		g.addGate("R-" + int2str(i), 1.0, 0.0, 0.0, c);
+		float exponent = 2 * M_PI / pow(2, i);
+		std::complex <float> phaseShift = exp(std::complex <float>(0, exponent));
+
+		g.addGate("R-" + to_string(i), 1.0, 0.0, 0.0, phaseShift);
 	}
 
 	vector <string> base (qubits, "ID");
@@ -497,15 +492,14 @@ vector <string> RQFT(int qubits, int reg, int over, int width){
 	vector <string> rqft;
 
 	Gates g;
-	float complex c;
 	for (int i = 1; i <= width+1; i++){
-		c = M_E;
-		c = cpowf(c, -2*M_PI*I/pow(2.0, i));
-		g.addGate("R'" + int2str(i), 1.0, 0.0, 0.0, c);
+		float exponent = -2 * M_PI / pow(2, i);
+		std::complex <float> phaseShift = exp(std::complex <float>(0, exponent));
+
+		g.addGate("R'" + to_string(i), 1.0, 0.0, 0.0, phaseShift);
 	}
 
 	vector <string> base (qubits, "ID");
-
 
 	rqft.push_back(Hadamard(qubits, over, 1));
 	for (int j = 0; j < width; j++){
@@ -657,9 +651,12 @@ vector<int> Shor(long N, int type, int n_threads, int cpu_region, int cpu_coales
 	int L = 2*n-1;
 	long inv_a = mul_inv(a,N);
 
+	cout << "a " << a << endl;
+
 	vector <string> func, f;
 
 	for (int i = L; i >= 0; i--){
+		cout << "M" << i << endl;
 		mod_a = modular_pow(a, pow(2,i), N);
 		mod_inv_a = modular_pow(inv_a, pow(2,i), N);
 
@@ -678,6 +675,9 @@ vector<int> Shor(long N, int type, int n_threads, int cpu_region, int cpu_coales
 		func.push_back(H0);
 
 		if (res) func.push_back(genRot(qubits, qft_qb, res));
+
+		// print function
+		for (int j = 0; j < func.size(); j++) cout << func[j] << endl;
 
 		dgm.executeFunction(func);
 

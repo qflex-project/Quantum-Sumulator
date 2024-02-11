@@ -136,7 +136,7 @@ void GpuExecution01(float* state, PT **pts, int qubits, int qbs_region, int mult
 	
 	long nth = mem_size/multi_gpu/t_REPT/2;	// /2 porque cada thread fica responsável por duas posições & /2 pelas 2 GPUS
 
-	long malloc_size = (mem_size * (sizeof(float complex)))/multi_gpu;
+	long malloc_size = (mem_size * (sizeof(std::complex <float>)))/multi_gpu;
 
 
 	block.x = t_TAM_BLOCK;
@@ -222,7 +222,7 @@ void GpuExecution01(float* state, PT **pts, int qubits, int qbs_region, int mult
 			is_peer = ((region_start + (block_region_size - t_COALESC)) > (qubits-multi_gpu+1));
 
 			for (int j = 0; j < c; j++){
-				memcpy(operators[j].matrix, pts[i+j]->matrix, 4*sizeof(float complex)); error();
+				memcpy(operators[j].matrix, pts[i+j]->matrix, 4*sizeof(std::complex <float>)); error();
 				pts[i+j]->setArgsGPU(operators[j].arg, region_start, block_region_size, t_COALESC);
 			}
 

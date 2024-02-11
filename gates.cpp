@@ -1,10 +1,10 @@
 #include "gates.h"
+#include "common.h"
 #include <iostream>
-#include <cmath>
 
 using namespace std;
 
-map <string, float complex*> Gates::list;
+map <string, std::complex <float>*> Gates::list;
 
 Gates::Gates(){
 	init();
@@ -17,48 +17,57 @@ void Gates::init(){
 		addGate("H", 1.0/sqrt(2), 1.0/sqrt(2), 1.0/sqrt(2), -1.0/sqrt(2));
 		addGate("X", 0.0, 1.0, 1.0, 0.0);
 		addGate("Z", 1.0, 0.0, 0.0, -1.0);
-		addGate("Y", 0.0, 1.0*I, -1.0*I, 0.0);
-		addGate("R1", 1.0, 0, 0.0, cpowf(M_E, M_PI*I));
-		addGate("R2", 1.0, 0, 0.0, cpowf(M_E, M_PI*I/2.0));
-		addGate("R3", 1.0, 0, 0.0, cpowf(M_E, M_PI*I/4.0));
+		addGate("Y", 0.0, std::complex <float>(0.0, 1.0), std::complex <float>(0.0, -1.0), 0.0);
+
+		for (int k = 1; k < 3; k++){
+			// Calculate the phase shift
+			float exponent = 2 * M_PI / pow(2, k);
+			std::complex <float> phaseShift = exp(std::complex <float>(0, exponent));
+
+			string name = "R" + to_string(k);
+			addGate(name, 1.0, 0, 0.0, phaseShift);
+		}
 	}
 }
 
-float complex* Gates::getMatrix(string gateName){
+std::complex <float>* Gates::getMatrix(string gateName){
 	if (Gates::list.find(gateName) == Gates::list.end()) return 0;
 
 	return Gates::list[gateName];
 }
 
-bool Gates::addGate(string name, float complex* matrix){
+bool Gates::addGate(string name, std::complex <float>* matrix){
 	if (Gates::list.find(name) != Gates::list.end()) return false;
 
 	Gates::list[name] = matrix;
 	return true;
 }
 
-bool Gates::addGate(string name, float complex a0, float complex a1, float complex a2, float complex a3){
-//        cout << "GATES" << endl;
-
+bool Gates::addGate(string name, std::complex <float> a0, std::complex <float> a1, std::complex <float> a2, std::complex <float> a3){
 	if (Gates::list.find(name) != Gates::list.end()) return false;
 
-//        cout << "GATES" << endl;
-
-	float complex* matrix = new float complex[4];
+	std::complex <float>* matrix = new std::complex <float>[4];
 	matrix[0] = a0;
 	matrix[1] = a1;
 	matrix[2] = a2;
 	matrix[3] = a3;
 
-	/*
-	cout << "Gate Adicionado " << name << endl;
-	cout << "Matrix" << endl;
-	cout << crealf(matrix[0]) << " , " << cimagf(matrix[0]) << "\t" << crealf(matrix[1]) << " , " << cimagf(matrix[1]) << endl;
-	cout << crealf(matrix[2]) << " , " << cimagf(matrix[2]) << "\t" << crealf(matrix[3]) << " , " << cimagf(matrix[3]) << endl << endl;
-	*/
-
 	Gates::list[name] = matrix;
 	return true;
+}
+
+void Gates::printGates(){
+	map <string, std::complex <float>*>::iterator it;
+	for (it = Gates::list.begin(); it != Gates::list.end(); it++){
+		cout << it->first << endl;
+		auto matrix = it->second;
+		for (int i = 0; i < 2; i++) {
+			for (int j = 0; j < 2; j++)
+				printf("%d: %.4f, %.4f\t", i*2+j, matrix[i*2+j].real(), matrix[i*2+j].imag());
+			printf("\n");
+		}
+		printf ("\n");
+	}
 }
 
 /////////////////////////////////////////////////////////////////////

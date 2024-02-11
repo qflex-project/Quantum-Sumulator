@@ -1,4 +1,6 @@
 #include "lib_general.h"
+#include "lib_grover.h"
+#include "lib_shor.h"
 #include "dgm.h"
 #include <vector>
 #include <iostream>
@@ -17,7 +19,7 @@ int main(int argc, char **argv){
 	int qubits = atoi(argv[1]);
 
 	int execType = atoi(argv[2]);
-	if (execType < t_PAR_CPU || execType > t_HYBRID){
+	if (execType < t_CPU || execType > t_HYBRID){
 		cout << "Invalid execution type: " << execType << endl; 
 		return 0;
 	}
@@ -36,16 +38,22 @@ int main(int argc, char **argv){
 
 	struct timeval timev, tvBegin, tvEnd;
 	float t;
-	long num_of_it = 3;
+	long num_of_it = 1;
+
+	std::string function = "R1,ID,ID,ID,ID,ID";
 	
 	gettimeofday(&tvBegin, NULL);
-	HadamardNQubits(qubits, num_of_it, execType, n_threads, cpu_region, cpu_coalesc, multi_gpu, gpu_region, gpu_coalesc, tam_block, rept);
+	ExecuteFunction(function, qubits, num_of_it, execType, n_threads, cpu_region, cpu_coalesc, multi_gpu, gpu_region, gpu_coalesc, tam_block, rept);
+	//HadamardNQubits(qubits, num_of_it, execType, n_threads, cpu_region, cpu_coalesc, multi_gpu, gpu_region, gpu_coalesc, tam_block, rept);
 	gettimeofday(&tvEnd, NULL);
 
 	timeval_subtract(&timev, &tvEnd, &tvBegin);
 	t = timev.tv_sec + (timev.tv_usec / 1000000.0);
 
 	cout << t << endl;
+
+	Gates g;
+	g.printGates();
 
 	return 0;
 }

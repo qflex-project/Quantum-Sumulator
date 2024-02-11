@@ -6,7 +6,7 @@
 
 using namespace std;
 
-#define complex _Complex
+#define ccomplex _Complex
 
 //N - Number to ne factored
 //type - Execution Type

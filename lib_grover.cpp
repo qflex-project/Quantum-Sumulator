@@ -2,7 +2,6 @@
 #include "dgm.h"
 #include "common.h"
 #include "gates.h"
-#include <cmath>
 #include <iostream>
 #include <algorithm>
 
