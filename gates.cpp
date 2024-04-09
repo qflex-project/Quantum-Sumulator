@@ -66,8 +66,46 @@ void Gates::printGates(){
 				printf("%d: %.4f, %.4f\t", i*2+j, matrix[i*2+j].real(), matrix[i*2+j].imag());
 			printf("\n");
 		}
+		if (isUnitary(it->first))
+			printf("Unitary\n");
+		else
+			printf("Not unitary\n");
+
 		printf ("\n");
 	}
+}
+
+bool Gates::isUnitary(string gateName){
+	if (Gates::list.find(gateName) == Gates::list.end()) return false;
+
+	auto matrix = Gates::list[gateName];
+
+	// Create a 2x2 matrix from the array
+	std::complex <float> U[2][2] = {{matrix[0], matrix[1]}, {matrix[2], matrix[3]}};
+
+	// Calculate the product U^{\dagger}U
+	std::complex <float> product[2][2] = {{conj(U[0][0]) * U[0][0] + conj(U[0][1]) * U[0][1],
+							conj(U[0][0]) * U[1][0] + conj(U[0][1]) * U[1][1]},
+							{conj(U[1][0]) * U[0][0] + conj(U[1][1]) * U[0][1],
+							conj(U[1][0]) * U[1][0] + conj(U[1][1]) * U[1][1]}};
+
+	// Check if the product is close enough to the identity matrix
+	float epsilon = 1e-6; // Adjust as needed
+	for (int i = 0; i < 2; ++i) {
+		for (int j = 0; j < 2; ++j) {
+			if (i == j) {
+				if (abs(product[i][j] - COMPLEX_ONE) > epsilon) {
+					return false;
+				}
+			} else {
+				if (abs(product[i][j]) > epsilon) {
+					return false;
+				}
+			}
+		}
+	}
+
+	return true;
 }
 
 /////////////////////////////////////////////////////////////////////
@@ -151,6 +189,13 @@ string Hadamard(int qubits, int reg, int width){
 	return concatena(hn, qubits);
 }
 
+string NumberAsX(int qubits, int num){
+	vector <string> c (qubits, "ID");
+	for (int i = 0; i < qubits; i++)
+		if (num >> ( qubits - i - 1) & 1) c[i] = "X";
+
+	return concatena(c, qubits);
+}
 
 string concatena(vector <string> vec, int size, bool rev){
 	string s;

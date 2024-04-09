@@ -103,8 +103,38 @@ string genRot(int qubits, int reg, long value){
 	vector <string> func(qubits, "ID");
 	string name;
 
-	int k = 2;
+	int k = 1;
 	std::complex <float> rot = 1;
+
+	long aux = value;
+	aux = aux >> 1;
+	while (aux){
+		if (aux&1) {
+			float exponent = -2 * M_PI / pow(2, k);
+			rot *= exp(std::complex <float>(0, exponent));
+		}
+		aux = aux >> 1;
+		k++;
+	}
+
+	if (rot != COMPLEX_ONE){
+		Gates g;
+		name = "Rot_" + int2str(value);
+		g.addGate(name, 1.0, 0.0, 0.0, rot);
+		func[reg] = name;
+
+		return concatena(func, qubits);
+	}
+
+	return "";
+}
+
+string genRot2(int qubits, int reg, long value){
+	vector <string> func(qubits, "ID");
+	string name;
+
+	int k = 1;
+	std::complex <float> rot = COMPLEX_ONE;
 
 	long aux = value;
 	while (aux){
@@ -374,7 +404,7 @@ vector <string> SubF(int qubits, int reg, int over, long num, int width, bool co
 	for (int i = 0; i < size; i++){
 		if (aux&1)
 			for (int j = i; j < size; j++){
-				float exponent = 2 * M_PI / pow(2, j-i+1);
+				float exponent = -2 * M_PI / pow(2, j-i+1);
 				rot[j] *= exp(std::complex <float>(0, exponent));
 			}
 		aux = aux >> 1;
@@ -384,9 +414,8 @@ vector <string> SubF(int qubits, int reg, int over, long num, int width, bool co
 	string name;
 
 	aux = reg+width-1;
-	c = 1;
 	for (int i = 0; i < size; i++){
-		if (rot[i] != c){
+		if (rot[i] != COMPLEX_ONE){
 			name = "SUB_" + int2str(num) + "_" + int2str(i);
 			g.addGate(name, 1.0, 0.0, 0.0, rot[i]);
 			if (controlled) name = "Target1(" + name + ")";
@@ -634,6 +663,10 @@ vector<int> Shor(long N, int type, int n_threads, int cpu_region, int cpu_coales
 	dgm.setMemoryValue((1<<(n+2)));
 	//----------------------------------//
 
+	if (!is_valid_quantum_state(dgm.state, qubits)){
+		cout << "Invalid quantum state" << endl;
+	}
+
 	qft_qb = 0;
 	reg1 = 1;
 	reg2 = n+2;
@@ -656,7 +689,6 @@ vector<int> Shor(long N, int type, int n_threads, int cpu_region, int cpu_coales
 	vector <string> func, f;
 
 	for (int i = L; i >= 0; i--){
-		cout << "M" << i << endl;
 		mod_a = modular_pow(a, pow(2,i), N);
 		mod_inv_a = modular_pow(inv_a, pow(2,i), N);
 
@@ -665,25 +697,38 @@ vector<int> Shor(long N, int type, int n_threads, int cpu_region, int cpu_coales
 		func.push_back(H0);
 
 		f = CMultMod(qubits, qft_qb, reg1, reg2, over, over_bool, n, mod_a, N);
-
 		func.insert(func.end(), f.begin(), f.end());
+
 		f = CSwapR(qubits, qft_qb, reg1, reg2, n);
 		func.insert(func.end(), f.begin(), f.end());
 
 		f = CRMultMod(qubits, qft_qb, reg1, reg2, over, over_bool, n, mod_a, N);
 		func.insert(func.end(), f.begin(), f.end());
+
+		long rot_base = (res & ~1);
+		if (rot_base) func.push_back(genRot(qubits, qft_qb, rot_base));
+
 		func.push_back(H0);
 
-		if (res) func.push_back(genRot(qubits, qft_qb, res));
-
 		// print function
-		for (int j = 0; j < func.size(); j++) cout << func[j] << endl;
+		// for (int j = 0; j < func.size(); j++) cout << func[j] << endl;
 
 		dgm.executeFunction(func);
 
+		//if (!is_valid_quantum_state(dgm.state, qubits)){
+		//	cout << "Invalid quantum state 1 - " << i << endl;
+		//}
+
 		m = dgm.measure(qft_qb);
 
-		res = (res << 1) | m;
+		//if (!is_valid_quantum_state(dgm.state, qubits)){
+		//	cout << "Invalid quantum state 2 - " << i << endl;
+		//}
+
+		res = res << 1;
+
+		if (m)
+			res |= 1;
 	}
 
 /*
@@ -709,7 +754,7 @@ vector<int> Shor(long N, int type, int n_threads, int cpu_region, int cpu_coales
 
 	int c = revert_bits(res, 2*n);
 
-	//cout << c << "   " << res << endl;
+	cout << "res: " << c << "   " << res << endl;
 
 	if(c==0)
 	{
@@ -787,5 +832,84 @@ vector<int> Shor(long N, int type, int n_threads, int cpu_region, int cpu_coales
 
 	//printf("Fail - Try Again.\n");
 	return factors;
+}
+
+vector <string> AddMod(int qubits, int reg, int over, int over_bool, int width, long a, long N){
+	vector<string> qft = QFT(qubits, reg, over, width);
+	vector<string> rqft = RQFT(qubits, reg, over, width);
+
+	string add_a = AddF(qubits, reg, over, a, width);
+	string sub_a = SubF(qubits, reg, over, a, width);
+
+	string sub_N = SubF(qubits, reg, over, N, width);
+	string c_add_N = CAddF(qubits, over_bool, reg, over, N, width);
+
+	string n_over = Pauli_X(qubits, over, 1);
+	string c_over = CNot(qubits, over, over_bool);
+
+	vector <string> func;
+
+	func.push_back(add_a);
+	func.push_back(sub_N);
+	func.insert(func.end(), rqft.begin(), rqft.end());
+	func.push_back(c_over);
+	func.insert(func.end(), qft.begin(), qft.end());
+	func.push_back(c_add_N);
+	func.push_back(sub_a);
+	func.insert(func.end(), rqft.begin(), rqft.end());
+	func.push_back(n_over);
+	func.push_back(c_over);
+	func.push_back(n_over);
+	func.insert(func.end(), qft.begin(), qft.end());
+	func.push_back(add_a);
+
+	return func;
+}
+
+vector<string> CMultMod2(int qubits, int ctrl, int reg1, int reg2, int over, int over_bool, int width, long a, long N){
+	vector <string> qft = QFT(qubits, reg2, over, width);
+	vector <string> rqft = RQFT(qubits, reg2, over, width);
+
+	//////////////////////////////////////////////////////////////
+
+	vector <string> mult_mod;
+	vector <string> am;
+
+	mult_mod.insert(mult_mod.end(), qft.begin(), qft.end());
+
+	int ctrl2 = reg1 + width - 1;
+	for (int i = 0; i < width; i++){
+		am = C2AddMod(qubits, ctrl, ctrl2-i, reg2, over, over_bool, width, a, N);
+		mult_mod.insert(mult_mod.end(), am.begin(), am.end());
+
+		a = (a*2)%N;
+	}
+
+	mult_mod.insert(mult_mod.end(), rqft.begin(), rqft.end());
+
+	return mult_mod;
+}
+
+vector<string> CRMultMod2(int qubits, int ctrl, int reg1, int reg2, int over, int over_bool, int width, long a, long N){
+	vector <string> qft = QFT(qubits, reg2, over, width);
+	vector <string> rqft = RQFT(qubits, reg2, over, width);
+
+	//////////////////////////////////////////////////////////////
+
+	vector <string> mult_mod;
+	vector <string> am;
+
+	int ctrl2 = reg1 + width - 1;
+	for (int i = 0; i < width; i++){
+		am = C2SubMod(qubits, ctrl, ctrl2-i, reg2, over, over_bool, width, a, N);
+		mult_mod.insert(mult_mod.begin(), am.begin(), am.end());
+
+		a = (a*2)%N;
+	}
+
+	mult_mod.insert(mult_mod.begin(), qft.begin(), qft.end());
+	mult_mod.insert(mult_mod.end(), rqft.begin(), rqft.end());
+
+	return mult_mod;
 }
 

@@ -41,6 +41,13 @@ string CSubF(int qubits, int ctrl1, int reg, int over, long num, int width);
 string SubF(int qubits, int reg, int over, long num, int width);
 vector <string> SubF(int qubits, int reg, int over, long num, int width, bool controlled);
 
+vector <string> AddMod(int qubits, int reg, int over, int over_bool, int width, long a, long N);
+
+vector<string> CMultMod2(int qubits, int ctrl, int reg1, int reg2, int over, int over_bool, int width, long a, long N);
+vector<string> CRMultMod2(int qubits, int ctrl, int reg1, int reg2, int over, int over_bool, int width, long a, long N);
+
+string genRot2(int qubits, int reg, long value);
+
 //////////////////////////////////////////////////////////////////////////
 
 string int2str(int number);

@@ -21,6 +21,7 @@ string ControlledN(int qubits, vector<int> ctrls, int target, string op, int cv 
 string Pauli_X(int qubits, int reg, int width = 1);
 string Pauli_Z(int qubits, int reg, int width = 1);
 string Hadamard(int qubits, int reg, int width = 1);
+string NumberAsX(int qubits, int reg);
 
 string concatena(vector <string> vec, int size, bool rev = false);
 
@@ -35,6 +36,7 @@ public:
 	bool addGate(string name, std::complex <float>* matrix);
 	bool addGate(string name, std::complex <float> a0, std::complex <float> a1, std::complex <float> a2, std::complex <float> a3);
 	void printGates();
+	bool isUnitary(string gateName);
 };
 
 #endif

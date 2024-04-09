@@ -40,7 +40,7 @@ dgm.o: dgm.cu
 	$(NVCC) -c dgm.cu -Xcompiler "-fopenmp -O3 -fcx-limited-range"
 
 dgm_cpu.o: dgm.cu
-	$(CXX) -c -x c++ dgm.cu -O3 -fopenmp -fcx-limited-range -D ONLY_CPU=1
+	$(CXX) -c -x c++ dgm.cu -O3 -fopenmp -fcx-limited-range -D ONLY_CPU
 
 kernel.o: kernel.cu
 	$(NVCC) -c -D OPS_BLOCK=$(OPS_BLOCK) kernel.cu

@@ -81,5 +81,7 @@ void swap_ptr(std::complex <float> **ptr1, std::complex <float> **ptr2);
 
 int timeval_subtract(struct timeval *result, struct timeval *t2, struct timeval *t1);
 
+bool is_valid_quantum_state(std::complex <float>* state, int qubits);
+
 #endif
 

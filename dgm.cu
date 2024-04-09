@@ -5,6 +5,7 @@
 #include <cstdio>
 #include <iterator>
 #include <bitset>
+#include <random>
 
 void Tokenize(const string& str, vector<string>& tokens, const string& delimiters = ",")
 {
@@ -129,70 +130,119 @@ int DGM::measure(int q_pos){
 	long mask = 1 << shift;
 
 	int count_one, count_zero, num_pb;
-	float zero, one, norm, r;
+	float zero, one, norm_factor, r;
 	one = zero = 0;
 
 	//#pragma omp for;
 	for (long i = 0; i < size; i++){
 		if (i & mask)
-			one += pow(state[i].real(), 2.0) + pow(state[i].imag(), 2.0);
+			one += norm(state[i]);
 		else
-			zero += pow(state[i].real(), 2.0) + pow(state[i].imag(), 2.0);
+			zero += norm(state[i]);
 	}
 
 	long m;
-	srand (time(NULL));
-	count_one = 0;
-	count_zero = 0;	
-	num_pb = 1;
 
-	for (int i = 0; i < num_pb; i++){
-		r = (double) rand() / RAND_MAX;
-		if (zero > r) count_zero++;
-		else count_one++;
-	}
+	random_device rd;
+	mt19937 gen(rd());
+	uniform_real_distribution<> dis(0.05, 0.95);
 
-	if (count_one > count_zero){
-		measure_value = one;
-		norm = sqrt(one);
+	r = dis(gen);
+
+	if (r > zero){
+		norm_factor = sqrt(one);
 		m = 1;
 	}
 	else{
-		measure_value = zero;
-		norm = sqrt(zero);
+		norm_factor = sqrt(zero);
 		m = 0;
 	}
 
 	//#pragma omp for
 	for (long i = 0; i < size/2; i++){
-		long pos = (i << 1) - (i&mask);
-		state[pos] = state[pos | (m << shift)]/norm;
-		state[pos | (1<<shift)] = 0.0;
+		long pos0 = (i * 2) - (i & (mask-1));
+		long pos1 = pos0 | mask;
+
+		//std::cout << "Pos0 " << pos0 << ": " << real(state[pos0]) << " + " << imag(state[pos0]) << "i" << endl;
+		//std::cout << "Pos1 " << pos1 << ": " << real(state[pos1]) << " + " << imag(state[pos1]) << "i" << endl;
+
+		if (m) {
+			state[pos0]	= state[pos1]/norm_factor;
+		}
+		else {
+			state[pos0]	= state[pos0]/norm_factor;
+		}
+
+		state[pos1] = 0.0;
+
+		//std::cout << "Pos0 " << pos0 << ": " << real(state[pos0]) << " + " << imag(state[pos0]) << "i" << endl;
+		//std::cout << "Pos1 " << pos1 << ": " << real(state[pos1]) << " + " << imag(state[pos1]) << "i" << endl;
+
+		//cout << "###" << endl;
 	}
 
-	std::cout << q_pos << ": " << m << " (" << zero << " , " << one << ") " << r << " " << mask << " " << shift << std::endl;
+	std::cout << q_pos << ": " << m << " (" << zero << " , " << one << ") " << r << " " << mask << " " << shift << " (" << sqrt(zero) << " , " << sqrt(one) << ") " << std::endl;
 
 	return m;
 }
 
 void DGM::colapse(int q_pos, int value){
 	long size = pow(2.0, qubits);
-	long mask = (qubits - 1 - q_pos);
 
-	float m;
-	m = 0;
+	long shift = (qubits - 1 - q_pos);
+	long mask = 1 << shift;
 
-	for (long i = 0; i < size; i++)
-		if (((i >> mask)&1) == value) m += pow(state[i].real(), 2.0) + pow(state[i].imag(), 2.0);
-
-	cout << m << endl;
-
-	m = sqrt(m);
+	float norm_factor = 0;
 	for (long i = 0; i < size; i++){
-		if (((i >> mask)&1) == value) state[i] = state[i]/m;
-		else state[i] = 0.0;
+		if (((i >> shift) & 1) == value) {
+			norm_factor += norm(state[i]);
+		}
 	}
+
+	norm_factor = sqrt(norm_factor);
+	int m = value;
+
+	for (long i = 0; i < size/2; i++){
+		long pos0 = (i * 2) - (i & (mask-1));
+		long pos1 = pos0 | mask;
+
+		if (m) {
+			state[pos0]	= state[pos1]/norm_factor;
+		}
+		else {
+			state[pos0]	= state[pos0]/norm_factor;
+		}
+
+		state[pos1] = 0.0;
+	}
+
+	std::cout << "colapse " << q_pos << " - " << value << " - " << norm_factor << std::endl;
 }
+
+void DGM::printProbability(int q_pos){
+	long size = pow(2.0, qubits);
+
+	long shift = (qubits - 1 - q_pos);
+	long mask = 1 << shift;
+
+	int count_one, count_zero, num_pb;
+	float zero, one, norm_factor, r;
+	one = zero = 0;
+
+	//#pragma omp for;
+	for (long i = 0; i < size; i++){
+		if (i & mask)
+			one += norm(state[i]);
+		else
+			zero += norm(state[i]);
+	}
+
+	if (std::abs(zero) < 1e-5) zero = 0;
+	if (std::abs(one) < 1e-5) one = 0;
+
+	std::cout << q_pos << " -- (" << zero << " , " << one << ")" << std::endl;
+}
+
 
 map <long, float> DGM::measure(vector<int> q_pos){
 	long mask = 0;
@@ -379,10 +429,10 @@ std::complex <float>* DGM::execute(int it){
 		case t_GPU:
 			result = GpuExecutionWrapper(state, pts, qubits, gpu_coales, gpu_region, multi_gpu, tam_block, rept, it);
 			break;
-		#endif
 		case t_HYBRID:
 			HybridExecution2(pts);
 			break;
+		#endif
 		default:
 			cout << "Erro exec type" << endl;
 			exit(1);
@@ -1012,12 +1062,7 @@ void PCpuExecution1_0(std::complex <float> *state, PT **pts, int qubits, int sta
 	}
 }
 
-void report_num_threads(int level){
-	#pragma omp single
-	{
-		printf("Level %d: number of threads in the team - %d\n", level, omp_get_num_threads());
-	}
-}
+#ifndef ONLY_CPU
 
 void DGM::HybridExecution(PT **pts){
 	long mem_size = pow(2.0, qubits);
@@ -1363,78 +1408,76 @@ void DGM::HybridExecution2(PT **pts){
 			}
 			//#pragma omp section          //GPU EXECUTION
 			else{
-				#ifndef ONLY_CPU
-					cout << "\n#######\nGPU EXECUTION" << endl;
-					long gpu_proj_id = global_proj.getNextProjectionId();
+				cout << "\n#######\nGPU EXECUTION" << endl;
+				long gpu_proj_id = global_proj.getNextProjectionId();
 
-					while (gpu_proj_id != -1){
-						//Project Gates
-						vector <PT*> gpu_pts;
-						
-						int gpu_i;
+				while (gpu_proj_id != -1){
+					//Project Gates
+					vector <PT*> gpu_pts;
+					
+					int gpu_i;
 
-						int map_qb[qubits];
-						memset(map_qb, -1, qubits * sizeof(int));
-			
-						int m = 0;
-						for (gpu_i = 0; gpu_i < qubits; gpu_i++){
-							if ((1 << gpu_i) & global_reg_mask){
-								map_qb[gpu_i] = m++;
-							}
-						}
-						
-						PT *aux;
-						gpu_pts.clear();
-						for (int gpu_i = global_start; gpu_i < global_end; gpu_i++){
-							
-							//verifica se o controle do operador satisfaz a parte global da região
-							if ((pts[gpu_i]->ctrl_mask & gpu_proj_id & ~global_reg_mask) == (pts[gpu_i]->ctrl_value & ~global_reg_mask)){
-								aux = new PT();
-
-								aux->qubits = pts[gpu_i]->qubits;
-
-								aux->matrix = pts[gpu_i]->matrix;
-								aux->mat_size = pts[gpu_i]->mat_size;
-								aux->ctrl_mask = pts[gpu_i]->ctrl_mask & global_reg_mask;
-								aux->ctrl_value = pts[gpu_i]->ctrl_value & global_reg_mask;
-
-								aux->end = map_qb[pts[gpu_i]->end];
-								aux->start = aux->end - log2(aux->mat_size);
-
-								aux->ctrl_count = 0;
-								for (int c = global_coales; c < qubits; c++){
-									if (aux->ctrl_mask & (1<<c)){
-										aux->ctrl_count++;
-
-										aux->ctrl_mask &= ~(1<<c);			//retira da mascara o controle do qubit atual (c)
-										aux->ctrl_mask |= (1 << map_qb[c]);	//e coloca o qubit que ele mapeia (map_qb[c])
-
-										if (aux->ctrl_value & (1<<c)){ 		//se o valor do controle for zero faz a mesma coisa para ctrl_value;
-											aux->ctrl_mask &= ~(1<<c);
-											aux->ctrl_mask |= (1 << map_qb[c]);
-										}
-									}
-								}	
-
-								gpu_pts.push_back(aux);
-							}
-						}
-						gpu_pts.push_back(NULL);
-						////////////////
-
-						ProjectState(state, qubits, global_region, gpu_proj_id, global_reg_mask, multi_gpu);
-
-						GpuExecutionWrapper(NULL, &gpu_pts[0], global_region, gpu_coales, gpu_region, multi_gpu, tam_block, rept, 1);
+					int map_qb[qubits];
+					memset(map_qb, -1, qubits * sizeof(int));
 		
-						GetState(state, qubits, global_region, gpu_proj_id, global_reg_mask, multi_gpu);
-
-						for (int c = 0; c < gpu_pts.size() - 1; c++){
-							delete gpu_pts[c];
+					int m = 0;
+					for (gpu_i = 0; gpu_i < qubits; gpu_i++){
+						if ((1 << gpu_i) & global_reg_mask){
+							map_qb[gpu_i] = m++;
 						}
-			
-						gpu_proj_id = global_proj.getNextProjectionId();
 					}
-				#endif
+					
+					PT *aux;
+					gpu_pts.clear();
+					for (int gpu_i = global_start; gpu_i < global_end; gpu_i++){
+						
+						//verifica se o controle do operador satisfaz a parte global da região
+						if ((pts[gpu_i]->ctrl_mask & gpu_proj_id & ~global_reg_mask) == (pts[gpu_i]->ctrl_value & ~global_reg_mask)){
+							aux = new PT();
+
+							aux->qubits = pts[gpu_i]->qubits;
+
+							aux->matrix = pts[gpu_i]->matrix;
+							aux->mat_size = pts[gpu_i]->mat_size;
+							aux->ctrl_mask = pts[gpu_i]->ctrl_mask & global_reg_mask;
+							aux->ctrl_value = pts[gpu_i]->ctrl_value & global_reg_mask;
+
+							aux->end = map_qb[pts[gpu_i]->end];
+							aux->start = aux->end - log2(aux->mat_size);
+
+							aux->ctrl_count = 0;
+							for (int c = global_coales; c < qubits; c++){
+								if (aux->ctrl_mask & (1<<c)){
+									aux->ctrl_count++;
+
+									aux->ctrl_mask &= ~(1<<c);			//retira da mascara o controle do qubit atual (c)
+									aux->ctrl_mask |= (1 << map_qb[c]);	//e coloca o qubit que ele mapeia (map_qb[c])
+
+									if (aux->ctrl_value & (1<<c)){ 		//se o valor do controle for zero faz a mesma coisa para ctrl_value;
+										aux->ctrl_mask &= ~(1<<c);
+										aux->ctrl_mask |= (1 << map_qb[c]);
+									}
+								}
+							}	
+
+							gpu_pts.push_back(aux);
+						}
+					}
+					gpu_pts.push_back(NULL);
+					////////////////
+
+					ProjectState(state, qubits, global_region, gpu_proj_id, global_reg_mask, multi_gpu);
+
+					GpuExecutionWrapper(NULL, &gpu_pts[0], global_region, gpu_coales, gpu_region, multi_gpu, tam_block, rept, 1);
+	
+					GetState(state, qubits, global_region, gpu_proj_id, global_reg_mask, multi_gpu);
+
+					for (int c = 0; c < gpu_pts.size() - 1; c++){
+						delete gpu_pts[c];
+					}
+		
+					gpu_proj_id = global_proj.getNextProjectionId();
+				}
 			}
 		//}
 		}
@@ -1443,6 +1486,7 @@ void DGM::HybridExecution2(PT **pts){
 	}
 }
 
+#endif
 
 void DGM::setCpuStructure(long cpu_region, long cpu_coales){
 	this->cpu_region = cpu_region;
@@ -1566,11 +1610,9 @@ std::string getBinaryString(long num, int n, bool includeNum) {
     return binaryString;
 }
 
-#ifdef ONLY_CPU
-	std::complex <float>* GpuExecutionWrapper(std::complex <float>* r_memory, PT **pts, int qubits, int multi_gpu, int coalesc, int qbs_region, int tam_block, int rept, int num_it) { return nullptr; }
-	std::complex <float>* GpuExecution(std::complex <float>* r_memory, std::complex <float>* w_memory, PT **pts, int qubits, float *total_time, long MAX_PT, long MAX_QB, int it) { return nullptr; }
-	std::complex <float>* GpuExecution2(std::complex <float>* r_memory, PT **pts, int pts_size, int qubits, long MAX_PT, int it) { return nullptr; }
-	std::complex <float>* GpuExecution3(std::complex <float>* r_memory, std::complex <float>* w_memory, int sub_size, int shift_write, PT *pt, int qubits, long MAX_PT, long MAX_QB, int it) { return nullptr; }
-	bool ProjectState(std::complex <float>* state, int qubits, int region_size, long reg_id, long reg_mask, int multi_gpu) { return false; }
-	bool GetState(std::complex <float>* state, int qubits, int region_size, long reg_id, long reg_mask, int multi_gpu) { return false; }
-#endif
+void report_num_threads(int level){
+	#pragma omp single
+	{
+		printf("Level %d: number of threads in the team - %d\n", level, omp_get_num_threads());
+	}
+}

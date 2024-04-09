@@ -26,14 +26,17 @@ using namespace std;
 std::complex <float>* GenericExecute(std::complex <float> *state, string function, int qubits, int type, int threads, int factor);
 std::complex <float>*  GenericExecute(std::complex <float> *state, vector<string> function, int qubits, int type, int threads, int factor);
 
-bool setDevice(int num = 0);
+#ifndef ONLY_CPU
 
-std::complex <float>* GpuExecutionWrapper(std::complex <float>* r_memory, PT **pts, int qubits, int multi_gpu, int coalesc, int qbs_region, int tam_block, int rept, int num_it);
-std::complex <float>* GpuExecution(std::complex <float>* r_memory, std::complex <float>* w_memory, PT **pts, int qubits, float *total_time, long MAX_PT, long MAX_QB, int it);
-std::complex <float>* GpuExecution2(std::complex <float>* r_memory, PT **pts, int pts_size, int qubits, long MAX_PT, int it);
-std::complex <float>* GpuExecution3(std::complex <float>* r_memory, std::complex <float>* w_memory, int sub_size, int shift_write, PT *pt, int qubits, long MAX_PT, long MAX_QB, int it);
-bool ProjectState(std::complex <float>* state, int qubits, int region_size, long reg_id, long reg_mask, int multi_gpu);
-bool GetState(std::complex <float>* state, int qubits, int region_size, long reg_id, long reg_mask, int multi_gpu);
+extern "C" bool setDevice(int num = 0);
+extern "C" std::complex <float>* GpuExecutionWrapper(std::complex <float>* r_memory, PT **pts, int qubits, int multi_gpu, int coalesc, int qbs_region, int tam_block, int rept, int num_it);
+extern "C" std::complex <float>* GpuExecution(std::complex <float>* r_memory, std::complex <float>* w_memory, PT **pts, int qubits, float *total_time, long MAX_PT, long MAX_QB, int it);
+extern "C" std::complex <float>* GpuExecution2(std::complex <float>* r_memory, PT **pts, int pts_size, int qubits, long MAX_PT, int it);
+extern "C" std::complex <float>* GpuExecution3(std::complex <float>* r_memory, std::complex <float>* w_memory, int sub_size, int shift_write, PT *pt, int qubits, long MAX_PT, long MAX_QB, int it);
+extern "C" bool ProjectState(std::complex <float>* state, int qubits, int region_size, long reg_id, long reg_mask, int multi_gpu);
+extern "C" bool GetState(std::complex <float>* state, int qubits, int region_size, long reg_id, long reg_mask, int multi_gpu);
+
+#endif
 
 void PCpuExecution1(std::complex <float> *state, PT **pts, int qubits, long n_threads, int coales, int region, int it);
 void PCpuExecution1_0(std::complex <float> *state, PT **pts, int qubits, int start, int end, int pos_count, int reg_id, int reg_mask);
@@ -143,6 +146,7 @@ public:
 	int measure(int q_pos);
 	map <long, float> measure(vector<int> q_pos);
 	void colapse(int q_pos, int value);
+	void printProbability(int q_pos);
 
 	void setFunction(string function, int it = 1, bool er = true);
 	void setFunction(vector<string> steps, int it = 1, bool er = true);

@@ -270,3 +270,21 @@ long modular_pow(long base, long exponent, long modulus){
 	}
 	return result;
 }
+
+bool is_valid_quantum_state(std::complex <float>* state, int qubits){
+	long size = pow(2, qubits);
+
+    // Check normalization
+    double norm_value = 0.0;
+    for (long i = 0; i < size; ++i) {
+        norm_value += norm(state[i]);
+    }
+
+    const double epsilon = 1e-4; // Adjust as needed for numerical precision
+    if (abs(norm_value - 1.0) > epsilon) {
+		printf("Norm: %f - %f\n", norm_value, abs(norm_value - 1.0));
+        return false;
+    }
+
+    return true;
+}
